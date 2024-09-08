@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: api_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - api_gateway_network
+    depends_on:
+      - user_service
+      - payment_service
+
+  user_service:
+    build: ./user_service
+    container_name: user_service
+    networks:
+      - api_gateway_network
+    ports:
+      - "8001:8000"
+
+  payment_service:
+    build: ./payment_service
+    container_name: payment_service
+    networks:
+      - api_gateway_network
+    ports:
+      - "8002:8000"
+
+networks:
+  api_gateway_network:
+    driver: bridge
