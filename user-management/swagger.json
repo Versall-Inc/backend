@@ -91,13 +91,6 @@
             "description": "ID of the user to update"
           },
           {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "ID of the user to update"
-          },
-          {
             "name": "user",
             "in": "body",
             "description": "Updated user object",
@@ -122,7 +115,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Token": []
           }
         ]
       },
@@ -151,7 +144,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Token": []
           }
         ]
       }
@@ -264,11 +257,10 @@
     }
   },
   "securityDefinitions": {
-    "Bearer": {
+    "Token": {
       "type": "apiKey",
       "name": "Authorization",
-      "in": "header",
-      "description": "Enter 'Bearer' [space] and then your token"
+      "in": "header"
     }
   }
 }

@@ -54,42 +54,7 @@ exports.getUserById = async (req, res, next) => {
     next(error); // Pass the error to the error handler middleware
   }
 };
-exports.getUserByUserName = async (req, res, next) => {
-  const { id } = req.params;
-  try {
-    const user = await userService.getUserById(id);
-    if (!user) {
-      return next({ statusCode: 404, message: 'User not found' });
-    }
-    res.status(200).json({ user });
-  } catch (error) {
-    next(error); // Pass the error to the error handler middleware
-  }
-};
-exports.getUserByEmail = async (req, res, next) => {
-  const { id } = req.params;
-  try {
-    const user = await userService.getUserById(id);
-    if (!user) {
-      return next({ statusCode: 404, message: 'User not found' });
-    }
-    res.status(200).json({ user });
-  } catch (error) {
-    next(error); // Pass the error to the error handler middleware
-  }
-};
-exports.getUserByPhoneNumber = async (req, res, next) => {
-  const { id } = req.params;
-  try {
-    const user = await userService.getUserById(id);
-    if (!user) {
-      return next({ statusCode: 404, message: 'User not found' });
-    }
-    res.status(200).json({ user });
-  } catch (error) {
-    next(error); // Pass the error to the error handler middleware
-  }
-};
+
 // Update user
 exports.updateUser = async (req, res, next) => {
   const { id } = req.params;

@@ -160,26 +160,28 @@ exports.login = function _callee2(req, res) {
           token = jwt.sign({
             id: user.id
           }, process.env.JWT_SECRET, {
-            expiresIn: '1h'
+            expiresIn: '6h'
           });
+          console.log(token);
+          console.log(user.id);
           res.json({
             token: token
           });
-          _context2.next = 22;
+          _context2.next = 24;
           break;
 
-        case 18:
-          _context2.prev = 18;
+        case 20:
+          _context2.prev = 20;
           _context2.t0 = _context2["catch"](3);
           logger.error('Login failed:', _context2.t0);
           res.status(500).json({
             error: 'Internal server error.'
           });
 
-        case 22:
+        case 24:
         case "end":
           return _context2.stop();
       }
     }
-  }, null, null, [[3, 18]]);
+  }, null, null, [[3, 20]]);
 };

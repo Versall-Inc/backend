@@ -153,24 +153,61 @@ exports.getUserById = function _callee3(req, res, next) {
       }
     }
   }, null, null, [[1, 10]]);
-};
+}; // Update user
 
-exports.getUserByUserName = function _callee4(req, res, next) {
-  var id, user;
+
+exports.updateUser = function _callee4(req, res, next) {
+  var id, _userSchema$validate2, error, updatedUser, field, message;
+
   return regeneratorRuntime.async(function _callee4$(_context4) {
     while (1) {
       switch (_context4.prev = _context4.next) {
         case 0:
           id = req.params.id;
-          _context4.prev = 1;
-          _context4.next = 4;
-          return regeneratorRuntime.awrap(userService.getUserById(id));
+          _userSchema$validate2 = userSchema.validate(req.body), error = _userSchema$validate2.error;
+
+          if (!error) {
+            _context4.next = 4;
+            break;
+          }
+
+          return _context4.abrupt("return", next({
+            statusCode: 400,
+            message: error.details[0].message
+          }));
 
         case 4:
-          user = _context4.sent;
+          if (!req.body.password) {
+            _context4.next = 6;
+            break;
+          }
 
-          if (user) {
-            _context4.next = 7;
+          return _context4.abrupt("return", next({
+            statusCode: 400,
+            message: 'Password update is not allowed'
+          }));
+
+        case 6:
+          _context4.prev = 6;
+
+          if (!(req.user.id !== id)) {
+            _context4.next = 9;
+            break;
+          }
+
+          return _context4.abrupt("return", res.status(403).json({
+            error: 'Unauthorized: You can only update your own user data'
+          }));
+
+        case 9:
+          _context4.next = 11;
+          return regeneratorRuntime.awrap(userService.updateUser(id, req.body));
+
+        case 11:
+          updatedUser = _context4.sent;
+
+          if (updatedUser[0]) {
+            _context4.next = 14;
             break;
           }
 
@@ -179,42 +216,90 @@ exports.getUserByUserName = function _callee4(req, res, next) {
             message: 'User not found'
           }));
 
-        case 7:
+        case 14:
           res.status(200).json({
-            user: user
+            message: 'User updated successfully'
           });
-          _context4.next = 13;
+          _context4.next = 26;
           break;
 
-        case 10:
-          _context4.prev = 10;
-          _context4.t0 = _context4["catch"](1);
+        case 17:
+          _context4.prev = 17;
+          _context4.t0 = _context4["catch"](6);
+
+          if (!(_context4.t0.name === 'SequelizeUniqueConstraintError')) {
+            _context4.next = 25;
+            break;
+          }
+
+          field = _context4.t0.errors[0].path;
+          message = 'A user with this ';
+
+          if (field === 'phoneNumber') {
+            message += 'phone number';
+          } else if (field === 'email') {
+            message += 'email';
+          } else if (field === 'username') {
+            message += 'username';
+          }
+
+          message += ' already exists';
+          return _context4.abrupt("return", next({
+            statusCode: 400,
+            message: message
+          }));
+
+        case 25:
           next(_context4.t0); // Pass the error to the error handler middleware
 
-        case 13:
+        case 26:
         case "end":
           return _context4.stop();
       }
     }
-  }, null, null, [[1, 10]]);
+  }, null, null, [[6, 17]]);
 };
 
-exports.getUserByEmail = function _callee5(req, res, next) {
-  var id, user;
+exports.changePassword = function _callee5(req, res, next) {
+  var id, newPassword, user, hashedPassword;
   return regeneratorRuntime.async(function _callee5$(_context5) {
     while (1) {
       switch (_context5.prev = _context5.next) {
         case 0:
           id = req.params.id;
-          _context5.prev = 1;
-          _context5.next = 4;
-          return regeneratorRuntime.awrap(userService.getUserById(id));
+          newPassword = req.body.newPassword; // Validate the new password
+
+          if (!(!newPassword || newPassword.length < 6)) {
+            _context5.next = 4;
+            break;
+          }
+
+          return _context5.abrupt("return", next({
+            statusCode: 400,
+            message: 'Password must be at least 6 characters long'
+          }));
 
         case 4:
+          _context5.prev = 4;
+
+          if (!(req.user.id !== id)) {
+            _context5.next = 7;
+            break;
+          }
+
+          return _context5.abrupt("return", res.status(403).json({
+            error: 'Unauthorized: You can only update your own user data'
+          }));
+
+        case 7:
+          _context5.next = 9;
+          return regeneratorRuntime.awrap(userService.getUserById(id));
+
+        case 9:
           user = _context5.sent;
 
           if (user) {
-            _context5.next = 7;
+            _context5.next = 12;
             break;
           }
 
@@ -223,28 +308,39 @@ exports.getUserByEmail = function _callee5(req, res, next) {
             message: 'User not found'
           }));
 
-        case 7:
+        case 12:
+          _context5.next = 14;
+          return regeneratorRuntime.awrap(bcrypt.hash(newPassword, 10));
+
+        case 14:
+          hashedPassword = _context5.sent;
+          user.password = hashedPassword;
+          _context5.next = 18;
+          return regeneratorRuntime.awrap(user.save());
+
+        case 18:
           res.status(200).json({
-            user: user
+            message: 'Password updated successfully'
           });
-          _context5.next = 13;
+          _context5.next = 24;
           break;
 
-        case 10:
-          _context5.prev = 10;
-          _context5.t0 = _context5["catch"](1);
+        case 21:
+          _context5.prev = 21;
+          _context5.t0 = _context5["catch"](4);
           next(_context5.t0); // Pass the error to the error handler middleware
 
-        case 13:
+        case 24:
         case "end":
           return _context5.stop();
       }
     }
-  }, null, null, [[1, 10]]);
-};
+  }, null, null, [[4, 21]]);
+}; // Delete user
 
-exports.getUserByPhoneNumber = function _callee6(req, res, next) {
-  var id, user;
+
+exports.deleteUser = function _callee6(req, res, next) {
+  var id, deletedUser;
   return regeneratorRuntime.async(function _callee6$(_context6) {
     while (1) {
       switch (_context6.prev = _context6.next) {
@@ -252,12 +348,12 @@ exports.getUserByPhoneNumber = function _callee6(req, res, next) {
           id = req.params.id;
           _context6.prev = 1;
           _context6.next = 4;
-          return regeneratorRuntime.awrap(userService.getUserById(id));
+          return regeneratorRuntime.awrap(userService.deleteUser(id));
 
         case 4:
-          user = _context6.sent;
+          deletedUser = _context6.sent;
 
-          if (user) {
+          if (deletedUser) {
             _context6.next = 7;
             break;
           }
@@ -269,7 +365,7 @@ exports.getUserByPhoneNumber = function _callee6(req, res, next) {
 
         case 7:
           res.status(200).json({
-            user: user
+            message: 'User deleted successfully'
           });
           _context6.next = 13;
           break;
@@ -282,234 +378,6 @@ exports.getUserByPhoneNumber = function _callee6(req, res, next) {
         case 13:
         case "end":
           return _context6.stop();
-      }
-    }
-  }, null, null, [[1, 10]]);
-}; // Update user
-
-
-exports.updateUser = function _callee7(req, res, next) {
-  var id, _userSchema$validate2, error, updatedUser, field, message;
-
-  return regeneratorRuntime.async(function _callee7$(_context7) {
-    while (1) {
-      switch (_context7.prev = _context7.next) {
-        case 0:
-          id = req.params.id;
-          _userSchema$validate2 = userSchema.validate(req.body), error = _userSchema$validate2.error;
-
-          if (!error) {
-            _context7.next = 4;
-            break;
-          }
-
-          return _context7.abrupt("return", next({
-            statusCode: 400,
-            message: error.details[0].message
-          }));
-
-        case 4:
-          if (!req.body.password) {
-            _context7.next = 6;
-            break;
-          }
-
-          return _context7.abrupt("return", next({
-            statusCode: 400,
-            message: 'Password update is not allowed'
-          }));
-
-        case 6:
-          _context7.prev = 6;
-
-          if (!(req.user.id !== id)) {
-            _context7.next = 9;
-            break;
-          }
-
-          return _context7.abrupt("return", res.status(403).json({
-            error: 'Unauthorized: You can only update your own user data'
-          }));
-
-        case 9:
-          _context7.next = 11;
-          return regeneratorRuntime.awrap(userService.updateUser(id, req.body));
-
-        case 11:
-          updatedUser = _context7.sent;
-
-          if (updatedUser[0]) {
-            _context7.next = 14;
-            break;
-          }
-
-          return _context7.abrupt("return", next({
-            statusCode: 404,
-            message: 'User not found'
-          }));
-
-        case 14:
-          res.status(200).json({
-            message: 'User updated successfully'
-          });
-          _context7.next = 26;
-          break;
-
-        case 17:
-          _context7.prev = 17;
-          _context7.t0 = _context7["catch"](6);
-
-          if (!(_context7.t0.name === 'SequelizeUniqueConstraintError')) {
-            _context7.next = 25;
-            break;
-          }
-
-          field = _context7.t0.errors[0].path;
-          message = 'A user with this ';
-
-          if (field === 'phoneNumber') {
-            message += 'phone number';
-          } else if (field === 'email') {
-            message += 'email';
-          } else if (field === 'username') {
-            message += 'username';
-          }
-
-          message += ' already exists';
-          return _context7.abrupt("return", next({
-            statusCode: 400,
-            message: message
-          }));
-
-        case 25:
-          next(_context7.t0); // Pass the error to the error handler middleware
-
-        case 26:
-        case "end":
-          return _context7.stop();
-      }
-    }
-  }, null, null, [[6, 17]]);
-};
-
-exports.changePassword = function _callee8(req, res, next) {
-  var id, newPassword, user, hashedPassword;
-  return regeneratorRuntime.async(function _callee8$(_context8) {
-    while (1) {
-      switch (_context8.prev = _context8.next) {
-        case 0:
-          id = req.params.id;
-          newPassword = req.body.newPassword; // Validate the new password
-
-          if (!(!newPassword || newPassword.length < 6)) {
-            _context8.next = 4;
-            break;
-          }
-
-          return _context8.abrupt("return", next({
-            statusCode: 400,
-            message: 'Password must be at least 6 characters long'
-          }));
-
-        case 4:
-          _context8.prev = 4;
-
-          if (!(req.user.id !== id)) {
-            _context8.next = 7;
-            break;
-          }
-
-          return _context8.abrupt("return", res.status(403).json({
-            error: 'Unauthorized: You can only update your own user data'
-          }));
-
-        case 7:
-          _context8.next = 9;
-          return regeneratorRuntime.awrap(userService.getUserById(id));
-
-        case 9:
-          user = _context8.sent;
-
-          if (user) {
-            _context8.next = 12;
-            break;
-          }
-
-          return _context8.abrupt("return", next({
-            statusCode: 404,
-            message: 'User not found'
-          }));
-
-        case 12:
-          _context8.next = 14;
-          return regeneratorRuntime.awrap(bcrypt.hash(newPassword, 10));
-
-        case 14:
-          hashedPassword = _context8.sent;
-          user.password = hashedPassword;
-          _context8.next = 18;
-          return regeneratorRuntime.awrap(user.save());
-
-        case 18:
-          res.status(200).json({
-            message: 'Password updated successfully'
-          });
-          _context8.next = 24;
-          break;
-
-        case 21:
-          _context8.prev = 21;
-          _context8.t0 = _context8["catch"](4);
-          next(_context8.t0); // Pass the error to the error handler middleware
-
-        case 24:
-        case "end":
-          return _context8.stop();
-      }
-    }
-  }, null, null, [[4, 21]]);
-}; // Delete user
-
-
-exports.deleteUser = function _callee9(req, res, next) {
-  var id, deletedUser;
-  return regeneratorRuntime.async(function _callee9$(_context9) {
-    while (1) {
-      switch (_context9.prev = _context9.next) {
-        case 0:
-          id = req.params.id;
-          _context9.prev = 1;
-          _context9.next = 4;
-          return regeneratorRuntime.awrap(userService.deleteUser(id));
-
-        case 4:
-          deletedUser = _context9.sent;
-
-          if (deletedUser) {
-            _context9.next = 7;
-            break;
-          }
-
-          return _context9.abrupt("return", next({
-            statusCode: 404,
-            message: 'User not found'
-          }));
-
-        case 7:
-          res.status(200).json({
-            message: 'User deleted successfully'
-          });
-          _context9.next = 13;
-          break;
-
-        case 10:
-          _context9.prev = 10;
-          _context9.t0 = _context9["catch"](1);
-          next(_context9.t0); // Pass the error to the error handler middleware
-
-        case 13:
-        case "end":
-          return _context9.stop();
       }
     }
   }, null, null, [[1, 10]]);

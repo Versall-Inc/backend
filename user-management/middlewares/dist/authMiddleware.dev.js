@@ -24,17 +24,19 @@ var authMiddleware = function authMiddleware(req, res, next) {
           }));
 
         case 3:
-          token = authHeader.replace('Bearer ', '');
-          _context.prev = 4;
+          console.log(authHeader);
+          token = authHeader.replace('Token ', '');
+          _context.prev = 5;
           decoded = jwt.verify(token, process.env.JWT_SECRET);
-          _context.next = 8;
+          _context.next = 9;
           return regeneratorRuntime.awrap(User.findByPk(decoded.id));
 
-        case 8:
+        case 9:
           req.user = _context.sent;
+          console.log(req.user);
 
           if (req.user) {
-            _context.next = 11;
+            _context.next = 13;
             break;
           }
 
@@ -42,27 +44,37 @@ var authMiddleware = function authMiddleware(req, res, next) {
             error: 'Invalid token.'
           }));
 
-        case 11:
-          _context.next = 17;
+        case 13:
+          if (!(req.params.id && req.params.id !== decoded.id)) {
+            _context.next = 15;
+            break;
+          }
+
+          return _context.abrupt("return", res.status(403).json({
+            error: 'Access denied. You can only update your own account.'
+          }));
+
+        case 15:
+          _context.next = 21;
           break;
 
-        case 13:
-          _context.prev = 13;
-          _context.t0 = _context["catch"](4);
+        case 17:
+          _context.prev = 17;
+          _context.t0 = _context["catch"](5);
           logger.error('JWT verification failed:', _context.t0);
           return _context.abrupt("return", res.status(401).json({
             error: 'Invalid token.'
           }));
 
-        case 17:
+        case 21:
           next();
 
-        case 18:
+        case 22:
         case "end":
           return _context.stop();
       }
     }
-  }, null, null, [[4, 13]]);
+  }, null, null, [[5, 17]]);
 };
 
 module.exports = authMiddleware;
