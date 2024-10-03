@@ -1,0 +1,5 @@
+userId,courseId,rating,age,location,expertiseLevel,courseTags,courseDifficulty,timeSpent,trendingScore
+1,101,5,24,US,Intermediate,AI,Beginner,120,4.8
+2,102,4,30,UK,Expert,WebDev,Advanced,90,4.2
+3,103,3,22,CA,Beginner,DataScience,Intermediate,60,3.5
+4,104,4,35,US,Advanced,ML,Expert,200,4.9
