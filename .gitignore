@@ -1,3 +1,44 @@
-.DS_Store
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
 
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.coverprofile
+
+# Temporary files
+*.tmp
+*.temp
+
+# Editor and IDE specific files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Logs
+*.log
+
+# Environment files
 .env
+
+# Build directories
+bin/
+build/
+
+# Coverage files
+coverage.out
+
+# Go workspace file
+go.work
+
+# Go modules
+go.sum

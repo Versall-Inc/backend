@@ -1,0 +1,11 @@
+2024/10/17 12:06:54 Sent to 12345: INFO: Welcome! This is a test message from the manager.
+2024/10/17 12:07:00 Sent to 67890: INFO: Welcome! This is a test message from the manager.
+2024/10/17 12:07:02 Sent to 12345: INFO: Hello, group of users!
+2024/10/17 12:07:02 Sent to 67890: INFO: Hello, group of users!
+2024/10/17 12:14:09 Sent to 12345: INFO: Welcome! This is a test message from the manager.
+2024/10/17 12:14:19 Sent to 67890: INFO: Welcome! This is a test message from the manager.
+2024/10/17 12:14:24 Sent to 12345: INFO: Hello, group of users!
+2024/10/17 12:15:02 Sent to 12345: INFO: Hello, group of users!
+2024/10/17 12:15:27 Sent to 67891: INFO: Welcome! This is a test message from the manager.
+2024/10/17 12:15:30 Sent to 12345: INFO: Hello, group of users!
+2024/10/17 12:15:30 Sent to 67891: INFO: Hello, group of users!
