@@ -1,48 +1,42 @@
-// services/paymentService.js
-const axios = require("axios");
+const stripe = require('../config/stripe');
 
-const SUBSCRIPTION_SERVICE_URL =
-  process.env.SUBSCRIPTION_SERVICE_URL || "http://localhost:8081/api";
+exports.createSubscription = async (customerId, paymentMethodId, planType) => {
+  // Define your pricing plans
+  const plans = {
+    basic: 'price_12345basic', 
+    plus: 'price_1QHRS7EEweu0LxbxIrzhiUyp',   
+    premium: 'price_12345premium' 
+  };
 
-// Create a subscription by calling the subscription service API
-const createSubscription = async (userId, planId) => {
-  try {
-    const response = await axios.post(
-      `${SUBSCRIPTION_SERVICE_URL}/subscription`,
-      { userId, planId }
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error("Failed to create subscription: " + error.message);
+  const priceId = plans[planType];
+  if (!priceId) {
+    throw new Error('Invalid plan type');
   }
+
+  // Attach the payment method to the customer
+  await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+
+  // Set the payment method as the default for invoices
+  await stripe.customers.update(customerId, {
+    invoice_settings: { default_payment_method: paymentMethodId },
+  });
+
+  // Create the subscription
+  const subscription = await stripe.subscriptions.create({
+    customer: customerId,
+    items: [{ price: priceId }],
+    expand: ['latest_invoice.payment_intent'],
+  });
+
+  return subscription;
 };
 
-// Cancel a subscription by calling the subscription service API
-const cancelSubscription = async (subscriptionId) => {
-  try {
-    const response = await axios.delete(
-      `${SUBSCRIPTION_SERVICE_URL}/subscription/${subscriptionId}`
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error("Failed to cancel subscription: " + error.message);
-  }
+exports.cancelSubscription = async (subscriptionId) => {
+  const canceledSubscription = await stripe.subscriptions.cancel(subscriptionId); // Use 'cancel' instead of 'del'
+  return canceledSubscription;
 };
 
-// Retrieve subscription by userId
-const getSubscriptionByUserId = async (userId) => {
-  try {
-    const response = await axios.get(
-      `${SUBSCRIPTION_SERVICE_URL}/subscription/${userId}`
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error("Failed to retrieve subscription: " + error.message);
-  }
-};
-
-module.exports = {
-  createSubscription,
-  cancelSubscription,
-  getSubscriptionByUserId,
+exports.getSubscription = async (subscriptionId) => {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  return subscription;
 };

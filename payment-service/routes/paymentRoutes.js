@@ -1,23 +1,15 @@
-// routes/paymentRoutes.js
-const express = require("express");
+const express = require('express');
+const paymentController = require('../controllers/paymentController');
+
 const router = express.Router();
-const {
-  createSession,
-  createSubscription,
-  handleWebhook,
-} = require("../controllers/paymentController");
 
-// Create a new payment session
-router.post("/payment/session", createSession);
+router.post('/create-payment-method', paymentController.createPaymentMethod);
+router.post('/attach-payment-method', paymentController.attachPaymentMethod);
+router.post('/subscribe', paymentController.createSubscription);
 
-// Create a subscription
-router.post("/subscription", createSubscription);
-
-// Webhook to handle Stripe events
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handleWebhook
-);
+// Define routes
+//router.post('/subscribe', paymentController.subscribe);
+router.post('/cancel-subscription', paymentController.cancelSubscription);
+router.get('/subscription/:subscriptionId', paymentController.getSubscription);
 
 module.exports = router;

@@ -1,0 +1,13 @@
+{
+    "token": "tok_visa" // Use the test token here
+}
+{
+    "paymentMethodId": "pm_1QHagaEEweu0LxbxrJOFHFWC", // Use the ID from your previous response
+    "customerId": "cus_R9lozcXAisXveu" // Replace with your actual customer ID
+}
+http://localhost:3000/api/subscribe
+{
+    "customerId": "cus_R9lozcXAisXveu", // Your customer ID
+    "paymentMethodId": "pm_1QHagaEEweu0LxbxrJOFHFWC", // Your PaymentMethod ID
+    "planType": "plus" // Change this to "basic", "plus", or "premium" as needed
+}

@@ -1,15 +1,16 @@
-// app.js
-const express = require("express");
-const paymentRoutes = require("./routes/paymentRoutes");
-require("dotenv").config();
+require('dotenv').config();
+const express = require('express');
+const dotenv = require('dotenv');
+const paymentRoutes = require('./routes/paymentRoutes');
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
-
 app.use(express.json());
+app.use('/api', paymentRoutes);
 
-app.use("/api", paymentRoutes);
-
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Payment Service is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
