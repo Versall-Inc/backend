@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+    ports:
+      - "3000:3000"
+    networks:
+      - intelligence-network
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=mydatabase
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
+    restart: unless-stopped
+
+  user-management-service:
+    build:
+      context: ./user-management
+    ports:
+      - "4000:4000"
+    depends_on:
+      - api-gateway
+      - user-data-db
+    networks:
+      - intelligence-network
+    environment:
+      - DB_HOST=user-data-db
+      - DB_PORT=5432
+      - DB_NAME=user-data-db
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
+    restart: unless-stopped
+
+  user-data-db:
+    image: postgres:15
+    container_name: postgres_container
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: user-data-db
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    networks:
+      - intelligence-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+networks:
+  intelligence-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

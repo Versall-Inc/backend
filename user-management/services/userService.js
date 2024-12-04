@@ -1,5 +1,5 @@
-const userRepository = require('../repositories/userRepository');
-const bcrypt = require('bcrypt');
+const userRepository = require("../repositories/userRepository");
+const bcrypt = require("bcrypt");
 
 const createUser = async (userData) => {
   // Hash the password before saving the user
@@ -38,5 +38,5 @@ module.exports = {
   updateUser,
   deleteUser,
   changePassword,
-  getUserByEmail
+  getUserByEmail,
 };

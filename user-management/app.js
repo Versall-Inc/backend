@@ -2,17 +2,17 @@ const express = require("express");
 const sequelize = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
-const errorHandler = require('./middlewares/errorHandler');
+const errorHandler = require("./middlewares/errorHandler");
 const logger = require("./utils/logger");
 require("dotenv").config();
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger.json");
-const cors = require('cors');
+const cors = require("cors");
 
 const app = express();
 
 // Log the current environment
-const environment = process.env.NODE_ENV || 'development';
+const environment = process.env.NODE_ENV || "development";
 console.log(`Running in ${environment} mode`);
 
 app.use(express.json());
@@ -33,12 +33,13 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 // Synchronize database
-sequelize.sync()
+sequelize
+  .sync()
   .then(() => {
-    console.log('Database synchronized');
+    console.log("Database synchronized");
   })
   .catch((err) => {
-    console.error('Error synchronizing database:', err);
+    console.error("Error synchronizing database:", err);
   });
 
 module.exports = app;
