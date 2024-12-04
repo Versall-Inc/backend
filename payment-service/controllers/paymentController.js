@@ -65,10 +65,21 @@ exports.attachPaymentMethod = async (req, res) => {
     await stripe.customers.update(customerId, {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
-    
+
     res.status(200).json({ message: 'PaymentMethod attached successfully.' });
   } catch (error) {
     console.error('Error attaching payment method:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get customer logs
+exports.getCustomerLogs = async (req, res) => {
+  try {
+    const logs = await paymentService.getCustomerLogs();
+    res.status(200).json(logs);
+  } catch (error) {
+    console.error('Error fetching customer logs:', error);
     res.status(500).json({ error: error.message });
   }
 };

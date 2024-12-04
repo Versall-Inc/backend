@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const dotenv = require('dotenv');
 const paymentRoutes = require('./routes/paymentRoutes');
+const connectDB = require('./config/db');
+connectDB();
+
 dotenv.config();
 
 const app = express();

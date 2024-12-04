@@ -1,11 +1,12 @@
+// services/paymentService.js
 const stripe = require('../config/stripe');
+const CustomerLog = require('../models/CustomerLog');
 
 exports.createSubscription = async (customerId, paymentMethodId, planType) => {
-  // Define your pricing plans
   const plans = {
-    basic: 'price_12345basic', 
-    plus: 'price_1QHRS7EEweu0LxbxIrzhiUyp',   
-    premium: 'price_12345premium' 
+    basic: 'price_12345basic',
+    plus: 'price_1QHRS7EEweu0LxbxIrzhiUyp',
+    premium: 'price_12345premium',
   };
 
   const priceId = plans[planType];
@@ -28,15 +29,36 @@ exports.createSubscription = async (customerId, paymentMethodId, planType) => {
     expand: ['latest_invoice.payment_intent'],
   });
 
+  // Log subscription details in MongoDB
+  await CustomerLog.create({
+    customerId,
+    subscriptionId: subscription.id,
+    planType,
+    paymentMethodId,
+    subscriptionStatus: subscription.status,
+    paymentDate: new Date(),
+  });
+
   return subscription;
 };
 
 exports.cancelSubscription = async (subscriptionId) => {
-  const canceledSubscription = await stripe.subscriptions.cancel(subscriptionId); // Use 'cancel' instead of 'del'
+  const canceledSubscription = await stripe.subscriptions.del(subscriptionId); // Use 'del' for canceling subscriptions
+  // Update log in MongoDB
+  await CustomerLog.findOneAndUpdate(
+    { subscriptionId },
+    { subscriptionStatus: 'canceled' },
+    { new: true }
+  );
   return canceledSubscription;
 };
 
 exports.getSubscription = async (subscriptionId) => {
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   return subscription;
+};
+
+exports.getCustomerLogs = async () => {
+  const logs = await CustomerLog.find();
+  return logs;
 };
