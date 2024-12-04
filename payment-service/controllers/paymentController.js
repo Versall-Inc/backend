@@ -1,62 +1,112 @@
 // controllers/paymentController.js
-const paymentService = require("../services/paymentService");
+const paymentService = require('../services/paymentService');
+const stripe = require('../config/stripe');
 
-// Create a new payment session
-const createSession = async (req, res) => {
-  const { amount, currency, successUrl, cancelUrl } = req.body;
+// Subscribe to a plan
+exports.subscribe = async (req, res) => {
+  console.log("Request body:", req.body); // Debugging line
   try {
-    const session = await paymentService.createPaymentSession(
-      amount,
-      currency,
-      successUrl,
-      cancelUrl
-    );
-    res.status(200).json({ sessionId: session.id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// Create a subscription for recurring payments
-const createSubscription = async (req, res) => {
-  const { customerId, priceId } = req.body;
-  try {
-    const subscription = await paymentService.createSubscription(
-      customerId,
-      priceId
-    );
+    const { customerId, paymentMethodId, planType } = req.body;
+    const subscription = await paymentService.createSubscription(customerId, paymentMethodId, planType);
     res.status(200).json(subscription);
   } catch (error) {
+    console.error('Error subscribing:', error); // Log the error for debugging
     res.status(500).json({ error: error.message });
   }
 };
 
-// Handle Stripe webhook events
-const handleWebhook = async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-
-  let event;
+// Cancel a subscription
+exports.cancelSubscription = async (req, res) => {
+  const { subscriptionId } = req.body;
   try {
-    event = stripe.webhooks.constructEvent(
-      req.rawBody,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    res.status(400).send(`Webhook Error: ${err.message}`);
-    return;
-  }
-
-  try {
-    await paymentService.handleWebhook(event);
-    res.status(200).send("Webhook received");
+    const canceledSubscription = await paymentService.cancelSubscription(subscriptionId);
+    res.status(200).json(canceledSubscription);
   } catch (error) {
-    res.status(400).send(`Webhook Error: ${error.message}`);
+    console.error('Error canceling subscription:', error);
+    res.status(500).json({ error: error.message });
   }
 };
 
-module.exports = {
-  createSession,
-  createSubscription,
-  handleWebhook,
+// Get subscription details
+exports.getSubscription = async (req, res) => {
+  const { subscriptionId } = req.params;
+  try {
+    const subscription = await paymentService.getSubscription(subscriptionId);
+    res.status(200).json(subscription);
+  } catch (error) {
+    console.error('Error retrieving subscription:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Create a PaymentMethod from a token
+exports.createPaymentMethod = async (req, res) => {
+  const { token } = req.body;
+  try {
+    const paymentMethod = await stripe.paymentMethods.create({
+      type: 'card',
+      card: { token },
+    });
+    res.status(200).json(paymentMethod);
+  } catch (error) {
+    console.error('Error creating payment method:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Attach a PaymentMethod to a customer
+exports.attachPaymentMethod = async (req, res) => {
+  const { paymentMethodId, customerId } = req.body;
+  try {
+    // Attach the PaymentMethod
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+
+    // Set it as the default payment method for the customer
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    res.status(200).json({ message: 'PaymentMethod attached successfully.' });
+  } catch (error) {
+    console.error('Error attaching payment method:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get customer logs
+exports.getCustomerLogs = async (req, res) => {
+  try {
+    const logs = await paymentService.getCustomerLogs();
+    res.status(200).json(logs);
+  } catch (error) {
+    console.error('Error fetching customer logs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Create a subscription
+exports.createSubscription = async (req, res) => {
+  const { customerId, paymentMethodId, planType } = req.body;
+  const plans = {
+    basic: 'price_12345basic',  // Replace with your actual price ID
+    plus: 'price_1QHRS7EEweu0LxbxIrzhiUyp',  // Replace with your actual price ID
+    premium: 'price_12345premium',  // Replace with your actual price ID
+  };
+
+  const priceId = plans[planType];
+  if (!priceId) {
+    return res.status(400).json({ error: 'Invalid plan type' });
+  }
+
+  try {
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      default_payment_method: paymentMethodId, // Use the PaymentMethod ID here
+    });
+    res.status(200).json(subscription);
+  } catch (error) {
+    console.error('Error creating subscription:', error);
+    res.status(500).json({ error: error.message });
+  }
 };
