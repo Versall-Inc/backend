@@ -9,11 +9,14 @@ services:
     networks:
       - intelligence-network
     environment:
-      - DB_HOST=db
+      - DB_HOST=user-data-db
       - DB_PORT=5432
-      - DB_NAME=mydatabase
+      - DB_NAME=user-data-db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
+    volumes:
+      - ./api-gateway:/server # Bind mount local folder to container
+      - /app/node_modules # Prevent overwriting node_modules
     restart: unless-stopped
 
   user-management-service:
@@ -22,7 +25,6 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      - api-gateway
       - user-data-db
     networks:
       - intelligence-network
@@ -32,6 +34,9 @@ services:
       - DB_NAME=user-data-db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
+    volumes:
+      - ./user-management:/server # Bind mount local folder to container
+      - /app/node_modules # Prevent overwriting node_modules
     restart: unless-stopped
 
   user-data-db:
