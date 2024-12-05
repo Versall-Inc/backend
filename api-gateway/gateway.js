@@ -14,11 +14,12 @@ app.use(bodyParser.json());
 
 // Middleware to verify JWT
 const jwtMiddleware = (req, res, next) => {
-  const bypassRoutes = ["/user/signup", "/user/login"];
+  const bypassRoutes = ["/signup", "/login"];
   console.log(req.path, "test");
 
   if (bypassRoutes.includes(req.path)) {
     // Skip JWT validation for bypass routes
+    console.log("Bypassing JWT validation");
     return next();
   }
 
