@@ -16,7 +16,7 @@ services:
       - DB_PASSWORD=mypassword
     volumes:
       - ./api-gateway:/server # Bind mount local folder to container
-      - /app/node_modules # Prevent overwriting node_modules
+      - node_modules1:/server/node_modules # Mount node_modules in tmpfs
     restart: unless-stopped
 
   user-management-service:
@@ -36,7 +36,7 @@ services:
       - DB_PASSWORD=mypassword
     volumes:
       - ./user-management:/server # Bind mount local folder to container
-      - /app/node_modules # Prevent overwriting node_modules
+      - node_modules2:/server/node_modules # Mount node_modules in tmpfs
     restart: unless-stopped
 
   user-data-db:
@@ -60,3 +60,5 @@ networks:
 
 volumes:
   postgres_data:
+  node_modules1:
+  node_modules2:
