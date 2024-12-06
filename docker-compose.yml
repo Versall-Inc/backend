@@ -17,8 +17,8 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - JWT_SECRET=mysecret
     volumes:
-      - ./api-gateway:/server # Bind mount local folder to container
-      - node_modules1:/server/node_modules # Mount node_modules in tmpfs
+      - ./api-gateway:/server
+      - node_modules1:/server/node_modules
     restart: unless-stopped
 
   user-management-service:
@@ -36,9 +36,10 @@ services:
       - DB_NAME=user-data-db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
+      - CHOKIDAR_USEPOLLING=true
     volumes:
-      - ./user-management:/server # Bind mount local folder to container
-      - node_modules2:/server/node_modules # Mount node_modules in tmpfs
+      - ./user-management:/server
+      - node_modules2:/server/node_modules
     restart: unless-stopped
 
   user-data-db:
@@ -54,7 +55,6 @@ services:
       - intelligence-network
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - CHOKIDAR_USEPOLLING=true
     restart: unless-stopped
 
 networks:

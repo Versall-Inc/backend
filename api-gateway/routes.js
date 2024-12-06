@@ -2,10 +2,10 @@ const ROUTES = [
   {
     url: "/user",
     auth: true,
-    creditCheck: true,
+    creditCheck: false,
     rateLimit: {
       windowMs: 15 * 60 * 1000,
-      max: 5,
+      max: 500000,
     },
     proxy: {
       target: "http://user-management-service:4000",

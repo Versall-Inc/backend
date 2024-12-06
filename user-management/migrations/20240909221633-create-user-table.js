@@ -1,7 +1,8 @@
-'use strict';
-
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Enable uuid-ossp extension
+    await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+
     await queryInterface.createTable('Users', {
       id: {
         type: Sequelize.UUID,
