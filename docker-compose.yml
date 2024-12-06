@@ -37,6 +37,7 @@ services:
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
       - CHOKIDAR_USEPOLLING=true
+      - PORT=4000
     volumes:
       - ./user-management:/server
       - node_modules2:/server/node_modules
