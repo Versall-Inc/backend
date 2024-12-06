@@ -1,20 +1,17 @@
 {
+  "main": "server.js",
   "scripts": {
-    "start": "node gateway.js",
-    "dev": "nodemon gateway.js"
-  },
-  "devDependencies": {
-    "body-parser": "^1.20.3",
-    "express": "^4.21.1",
-    "http-proxy-middleware": "^3.0.3",
-    "jsonwebtoken": "^9.0.2",
-    "nodemon": "^3.1.7"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "body-parser": "^1.20.3",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "express-session": "^1.18.1",
     "http-proxy-middleware": "^3.0.3",
     "jsonwebtoken": "^9.0.2",
-    "nodemon": "^3.1.7"
+    "keycloak-connect": "^26.0.7",
+    "morgan": "^1.10.0"
   }
 }

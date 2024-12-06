@@ -14,6 +14,8 @@ services:
       - DB_NAME=user-data-db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
+      - CHOKIDAR_USEPOLLING=true
+      - JWT_SECRET=mysecret
     volumes:
       - ./api-gateway:/server # Bind mount local folder to container
       - node_modules1:/server/node_modules # Mount node_modules in tmpfs
