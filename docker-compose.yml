@@ -54,6 +54,7 @@ services:
       - intelligence-network
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - CHOKIDAR_USEPOLLING=true
     restart: unless-stopped
 
 networks:
