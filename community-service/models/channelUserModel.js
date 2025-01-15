@@ -1,4 +1,4 @@
-const cassandra = require('../config/cassandra');
+const cassandra = require("../config/cassandra");
 
 const ChannelUserModel = {
   /**
@@ -26,7 +26,7 @@ const ChannelUserModel = {
     const params = [channelId];
 
     const result = await cassandra.execute(query, params, { prepare: true });
-    return result.rows.map(row => row.user_id);
+    return result.rows.map((row) => row.user_id);
   },
 
   /**

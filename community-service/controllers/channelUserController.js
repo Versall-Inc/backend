@@ -1,4 +1,4 @@
-const ChannelUserModel = require('../models/channelUserModel');
+const ChannelUserModel = require("../models/channelUserModel");
 
 /**
  * @desc Add a user to a channel
@@ -10,15 +10,17 @@ exports.joinChannel = async (req, res) => {
     const userId = req.user.id; // Extracted from auth middleware
 
     if (!channelId) {
-      return res.status(400).json({ message: 'Channel ID is required' });
+      return res.status(400).json({ message: "Channel ID is required" });
     }
 
     await ChannelUserModel.addUserToChannel(channelId, userId);
 
-    res.status(200).json({ message: 'User joined the channel successfully' });
+    res.status(200).json({ message: "User joined the channel successfully" });
   } catch (err) {
-    console.error('Error joining channel:', err.message);
-    res.status(500).json({ message: 'Error joining channel', error: err.message });
+    console.error("Error joining channel:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error joining channel", error: err.message });
   }
 };
 
@@ -31,15 +33,17 @@ exports.getUsersInChannel = async (req, res) => {
     const { channelId } = req.params;
 
     if (!channelId) {
-      return res.status(400).json({ message: 'Channel ID is required' });
+      return res.status(400).json({ message: "Channel ID is required" });
     }
 
     const users = await ChannelUserModel.getUsersInChannel(channelId);
 
     res.status(200).json({ users });
   } catch (err) {
-    console.error('Error fetching users in channel:', err.message);
-    res.status(500).json({ message: 'Error fetching users in channel', error: err.message });
+    console.error("Error fetching users in channel:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error fetching users in channel", error: err.message });
   }
 };
 
@@ -52,14 +56,23 @@ exports.removeUserFromChannel = async (req, res) => {
     const { channelId, userId } = req.params;
 
     if (!channelId || !userId) {
-      return res.status(400).json({ message: 'Channel ID and User ID are required' });
+      return res
+        .status(400)
+        .json({ message: "Channel ID and User ID are required" });
     }
 
     await ChannelUserModel.removeUserFromChannel(channelId, userId);
 
-    res.status(200).json({ message: 'User removed from the channel successfully' });
+    res
+      .status(200)
+      .json({ message: "User removed from the channel successfully" });
   } catch (err) {
-    console.error('Error removing user from channel:', err.message);
-    res.status(500).json({ message: 'Error removing user from channel', error: err.message });
+    console.error("Error removing user from channel:", err.message);
+    res
+      .status(500)
+      .json({
+        message: "Error removing user from channel",
+        error: err.message,
+      });
   }
 };

@@ -1,5 +1,5 @@
-const client = require('../config/cassandra');
-const { v4: uuidv4 } = require('uuid');
+const client = require("../config/cassandra");
+const { v4: uuidv4 } = require("uuid");
 
 const ChannelModel = {
   /**

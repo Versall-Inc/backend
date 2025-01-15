@@ -1,53 +1,99 @@
-const IUserRepository = require('./IRepository/IUserRepository.js');
-const User = require('../models/user'); // Ensure this path is correct
+const IUserRepository = require("./IRepository/IUserRepository.js");
+const User = require("../models/user");
 
 /**
  * @implements {IUserRepository}
  */
 class UserRepository extends IUserRepository {
   async createUser(userData) {
-    return await User.create(userData);
+    try {
+      return await User.create(userData);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
   }
 
   async getAllUsers() {
-    return await User.findAll({
-      attributes: [
-        "id", 
-        "username", 
-        "email",  
-        "firstName", 
-        "middleName", 
-        "lastName", 
-        "address", 
-        "phoneNumber", 
-        "accountStatus"
-      ],
-    });
+    try {
+      return await User.findAll({
+        attributes: [
+          "id",
+          "username",
+          "email",
+          "firstname",
+          "lastname",
+          "address",
+          "country",
+          "city",
+          "phoneNumber",
+          "accountStatus",
+          "subscriptionStatus",
+        ],
+      });
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      throw error;
+    }
   }
 
-  async getUserById(id) {
-    return await User.findByPk(id, {
-      attributes: { exclude: ['password'] }
-    });
+  async getUserById(id, includePassword) {
+    try {
+      if (includePassword) {
+        return await User.findByPk(id);
+      }
+      return await User.findByPk(id, {
+        attributes: { exclude: ["password"] },
+      });
+    } catch (error) {
+      console.error("Error fetching user by ID:", error);
+      throw error;
+    }
   }
-  
+
   async getUserByEmail(email) {
-    return await User.findOne({
-      where: { email },
-      attributes: { exclude: ['password'] }
-    });
+    try {
+      return await User.findOne({
+        where: { email },
+        attributes: { exclude: ["password"] },
+      });
+    } catch (error) {
+      console.error("Error fetching user by email:", error);
+      throw error;
+    }
   }
-  
+
   async updateUser(id, userData) {
-    return await User.update(userData, {
-      where: { id }
-    });
+    try {
+      const [updated] = await User.update(userData, {
+        where: { id },
+      });
+      if (updated) {
+        return await User.findByPk(id, {
+          attributes: { exclude: ["password"] },
+        });
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return null;
+    }
   }
 
   async deleteUser(id) {
-    return await User.destroy({
-      where: { id }
-    });
+    try {
+      const deleted = await User.destroy({
+        where: { id },
+      });
+      if (deleted) {
+        return { message: "User deleted successfully" };
+      }
+      throw new Error("User not found");
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
   }
 }
 

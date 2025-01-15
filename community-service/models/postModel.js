@@ -1,5 +1,5 @@
-const cassandra = require('../config/cassandra');
-const { v4: uuidv4 } = require('uuid');
+const cassandra = require("../config/cassandra");
+const { v4: uuidv4 } = require("uuid");
 
 const PostModel = {
   /**
@@ -12,12 +12,12 @@ const PostModel = {
       VALUES (?, ?, ?, ?, ?, ?, toTimestamp(now()))
     `;
     const params = [
-      uuidv4(),            // Generate a unique ID for the post
-      post.channelId,      // Channel ID
-      post.userId,         // User ID of the post creator
-      post.text || null,   // Optional text content
+      uuidv4(), // Generate a unique ID for the post
+      post.channelId, // Channel ID
+      post.userId, // User ID of the post creator
+      post.text || null, // Optional text content
       post.description || null, // Optional description
-      post.photo || null,  // Optional photo URL
+      post.photo || null, // Optional photo URL
     ];
 
     await cassandra.execute(query, params, { prepare: true });

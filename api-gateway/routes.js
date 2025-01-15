@@ -1,29 +1,43 @@
 const ROUTES = [
   {
-    url: "/user",
+    url: "/user-management/auth/complete-profile",
     auth: true,
-    creditCheck: false,
+    checkProfile: false,
     rateLimit: {
       windowMs: 15 * 60 * 1000,
       max: 500000,
     },
     proxy: {
-      target: "http://user-management-service:4000",
+      target: "http://user-management-service:4000/auth/complete-profile",
       changeOrigin: true,
-      pathRewrite: {
-        [`^/user`]: "",
-      },
     },
   },
   {
-    url: "/premium",
-    auth: true,
-    creditCheck: true,
+    url: "/user-management/auth",
+    auth: false,
+    checkProfile: false,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
     proxy: {
-      target: "https://www.google.com",
+      target: "http://user-management-service:4000/auth",
+      changeOrigin: true,
+    },
+  },
+  {
+    url: "/user-management/user",
+    auth: true,
+    checkProfile: true,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
+    proxy: {
+      target: "http://user-management-service:4000/user",
       changeOrigin: true,
       pathRewrite: {
-        [`^/premium`]: "",
+        [`^/user`]: "",
       },
     },
   },

@@ -1,35 +1,5 @@
 const userService = require("../services/userService");
-const logger = require("../utils/logger");
-const userSchema = require("../schemas/userSchema");
-const { get } = require("../routes/authRoutes");
-
-// Create a new user
-exports.createUser = async (req, res, next) => {
-  const { error } = userSchema.validate(req.body);
-  if (error) {
-    return next({ statusCode: 400, message: error.details[0].message });
-  }
-
-  try {
-    const newUser = await userService.createUser(req.body);
-    res.status(201).json({ user: newUser });
-  } catch (error) {
-    if (error.name === "SequelizeUniqueConstraintError") {
-      const field = error.errors[0].path;
-      let message = "A user with this ";
-      if (field === "phoneNumber") {
-        message += "phone number";
-      } else if (field === "email") {
-        message += "email";
-      } else if (field === "username") {
-        message += "username";
-      }
-      message += " already exists";
-      return next({ statusCode: 400, message });
-    }
-    next(error);
-  }
-};
+const bcrypt = require("bcrypt");
 
 exports.getAllUsers = async (req, res, next) => {
   try {
@@ -56,28 +26,16 @@ exports.getUserById = async (req, res, next) => {
 
 // Update user
 exports.updateUser = async (req, res, next) => {
-  const { id } = req.params;
-  const { error } = userSchema.validate(req.body);
-  if (error) {
-    return next({ statusCode: 400, message: error.details[0].message });
-  }
-  // Check if the request body contains the password field
-  if (req.body.password) {
-    return next({ statusCode: 400, message: "Password update is not allowed" });
-  }
+  const id = req.user.id;
 
   try {
-    if (req.user.id !== id) {
-      return res.status(403).json({
-        error: "Unauthorized: You can only update your own user data",
-      });
-    }
-
     const updatedUser = await userService.updateUser(id, req.body);
-    if (!updatedUser[0]) {
+    if (!updatedUser) {
       return next({ statusCode: 404, message: "User not found" });
     }
-    res.status(200).json({ message: "User updated successfully" });
+    res
+      .status(200)
+      .json({ message: "User updated successfully", user: updatedUser });
   } catch (error) {
     if (error.name === "SequelizeUniqueConstraintError") {
       const field = error.errors[0].path;
@@ -92,32 +50,35 @@ exports.updateUser = async (req, res, next) => {
       message += " already exists";
       return next({ statusCode: 400, message });
     }
-    next(error); // Pass the error to the error handler middleware
+    next(error);
   }
 };
 
 exports.changePassword = async (req, res, next) => {
-  const { id } = req.params;
-  const { newPassword } = req.body;
-
-  // Validate the new password
-  if (!newPassword || newPassword.length < 6) {
-    return next({
-      statusCode: 400,
-      message: "Password must be at least 6 characters long",
-    });
-  }
+  const id = req.user.id;
+  const { currentPassword, newPassword } = req.body;
 
   try {
-    if (req.user.id !== id) {
-      return res.status(403).json({
-        error: "Unauthorized: You can only update your own user data",
-      });
-    }
-
-    const user = await userService.getUserById(id);
+    const user = await userService.getUserById(id, true);
     if (!user) {
       return next({ statusCode: 404, message: "User not found" });
+    }
+
+    console.log("hey");
+    console.log(user);
+
+    // Check if the current password is correct
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    console.log("hey1");
+    if (!isPasswordValid) {
+      return next({
+        statusCode: 400,
+        message: "Your current password is not correct",
+      });
     }
 
     // Hash the new password before saving it
@@ -127,13 +88,13 @@ exports.changePassword = async (req, res, next) => {
 
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
-    next(error); // Pass the error to the error handler middleware
+    next(error);
   }
 };
 
 // Delete user
 exports.deleteUser = async (req, res, next) => {
-  const { id } = req.params;
+  const id = req.user.id;
   try {
     const deletedUser = await userService.deleteUser(id);
     if (!deletedUser) {

@@ -1,4 +1,4 @@
-const cassandra = require('../config/cassandra');
+const cassandra = require("../config/cassandra");
 
 const CommentModel = {
   create: async (comment) => {

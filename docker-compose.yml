@@ -16,6 +16,7 @@ services:
       - DB_PASSWORD=mypassword
       - CHOKIDAR_USEPOLLING=true
       - JWT_SECRET=mysecret
+      - PORT=3000
     volumes:
       - ./api-gateway:/server
       - node_modules1:/server/node_modules
@@ -38,6 +39,7 @@ services:
       - DB_PASSWORD=mypassword
       - CHOKIDAR_USEPOLLING=true
       - PORT=4000
+      - JWT_SECRET=mysecret
     volumes:
       - ./user-management:/server
       - node_modules2:/server/node_modules

@@ -9,7 +9,7 @@ const { setupProxies } = require("./proxy");
 const { setupAuth } = require("./auth");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 setupLogging(app);
 setupRateLimit(app, ROUTES);

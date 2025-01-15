@@ -42,3 +42,5 @@ go.work
 
 # Go modules
 go.sum
+
+.vscode/

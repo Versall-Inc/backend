@@ -1,4 +1,4 @@
-const PostModel = require('../models/postModel');
+const PostModel = require("../models/postModel");
 
 /**
  * @desc Create a new post
@@ -12,7 +12,8 @@ exports.createPost = async (req, res) => {
     // Validate input
     if (!channelId || (!text && !description && !photo)) {
       return res.status(400).json({
-        message: 'Channel ID and at least one content field (text, description, or photo) are required',
+        message:
+          "Channel ID and at least one content field (text, description, or photo) are required",
       });
     }
 
@@ -26,10 +27,14 @@ exports.createPost = async (req, res) => {
 
     await PostModel.create(newPost);
 
-    res.status(201).json({ message: 'Post created successfully', post: newPost });
+    res
+      .status(201)
+      .json({ message: "Post created successfully", post: newPost });
   } catch (err) {
-    console.error('Error creating post:', err.message);
-    res.status(500).json({ message: 'Error creating post', error: err.message });
+    console.error("Error creating post:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error creating post", error: err.message });
   }
 };
 
@@ -42,15 +47,17 @@ exports.getPostsByChannel = async (req, res) => {
     const { channelId } = req.params;
 
     if (!channelId) {
-      return res.status(400).json({ message: 'Channel ID is required' });
+      return res.status(400).json({ message: "Channel ID is required" });
     }
 
     const posts = await PostModel.findByChannelId(channelId);
 
     res.status(200).json({ posts });
   } catch (err) {
-    console.error('Error fetching posts:', err.message);
-    res.status(500).json({ message: 'Error fetching posts', error: err.message });
+    console.error("Error fetching posts:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error fetching posts", error: err.message });
   }
 };
 
@@ -63,19 +70,21 @@ exports.getPostById = async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ message: 'Post ID is required' });
+      return res.status(400).json({ message: "Post ID is required" });
     }
 
     const post = await PostModel.findById(id);
 
     if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
+      return res.status(404).json({ message: "Post not found" });
     }
 
     res.status(200).json({ post });
   } catch (err) {
-    console.error('Error fetching post:', err.message);
-    res.status(500).json({ message: 'Error fetching post', error: err.message });
+    console.error("Error fetching post:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error fetching post", error: err.message });
   }
 };
 
@@ -88,15 +97,17 @@ exports.deletePost = async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ message: 'Post ID is required' });
+      return res.status(400).json({ message: "Post ID is required" });
     }
 
     await PostModel.deleteById(id);
 
-    res.status(200).json({ message: 'Post deleted successfully' });
+    res.status(200).json({ message: "Post deleted successfully" });
   } catch (err) {
-    console.error('Error deleting post:', err.message);
-    res.status(500).json({ message: 'Error deleting post', error: err.message });
+    console.error("Error deleting post:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error deleting post", error: err.message });
   }
 };
 
@@ -110,7 +121,9 @@ exports.getAllPosts = async (req, res) => {
 
     res.status(200).json({ posts });
   } catch (err) {
-    console.error('Error fetching posts:', err.message);
-    res.status(500).json({ message: 'Error fetching posts', error: err.message });
+    console.error("Error fetching posts:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error fetching posts", error: err.message });
   }
 };

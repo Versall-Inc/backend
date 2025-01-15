@@ -2,18 +2,19 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
 const validate = require("../middlewares/validate");
-const userSchema = require("../schemas/userSchema");
-const authMiddleware = require("../middlewares/authMiddleware"); // Import authMiddleware
+const {
+  updateProfileSchema,
+  changePasswordSchema,
+} = require("../schemas/userSchemas");
 
-router.post("/", validate(userSchema), userController.createUser);
 router.get("/", userController.getAllUsers);
 router.get("/:id", userController.getUserById);
+router.put("/", validate(updateProfileSchema), userController.updateUser);
 router.put(
-  "/:id",
-  authMiddleware,
-  validate(userSchema),
-  userController.updateUser
-); // Apply authMiddleware
-router.delete("/:id", authMiddleware, userController.deleteUser); // Apply authMiddleware
+  "/change-password",
+  validate(changePasswordSchema),
+  userController.changePassword
+);
+router.delete("/", userController.deleteUser);
 
 module.exports = router;

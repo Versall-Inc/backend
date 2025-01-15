@@ -11,8 +11,8 @@ const getAllUsers = async () => {
   return await userRepository.getAllUsers();
 };
 
-const getUserById = async (id) => {
-  return await userRepository.getUserById(id);
+const getUserById = async (id, includePassword = false) => {
+  return await userRepository.getUserById(id, includePassword);
 };
 
 const updateUser = async (id, userData) => {

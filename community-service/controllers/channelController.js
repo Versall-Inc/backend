@@ -1,5 +1,5 @@
-const ChannelModel = require('../models/channelModel');
-const { v4: uuidv4 } = require('uuid');
+const ChannelModel = require("../models/channelModel");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * @desc Create a new channel
@@ -12,7 +12,7 @@ exports.createChannel = async (req, res) => {
     // Check if the handle already exists
     const existingChannel = await ChannelModel.findByHandle(handle);
     if (existingChannel) {
-      return res.status(400).json({ message: 'Channel handle already exists' });
+      return res.status(400).json({ message: "Channel handle already exists" });
     }
 
     const photo = req.file ? req.file.filename : null;
@@ -21,15 +21,17 @@ exports.createChannel = async (req, res) => {
     await ChannelModel.create({
       name,
       handle,
-      isPrivate: isPrivate === 'true', // Convert string "true"/"false" to boolean
+      isPrivate: isPrivate === "true", // Convert string "true"/"false" to boolean
       ownerId: req.user.id, // Extracted from authentication middleware
       photo,
     });
 
-    res.status(201).json({ message: 'Channel created successfully' });
+    res.status(201).json({ message: "Channel created successfully" });
   } catch (err) {
-    console.error('Error creating channel:', err.message);
-    res.status(500).json({ message: 'Error creating channel', error: err.message });
+    console.error("Error creating channel:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error creating channel", error: err.message });
   }
 };
 
@@ -42,15 +44,18 @@ exports.getChannels = async (req, res) => {
     const { isPrivate } = req.query;
 
     // If isPrivate is provided, convert it to boolean
-    const isPrivateFilter = isPrivate === 'true' ? true : isPrivate === 'false' ? false : null;
+    const isPrivateFilter =
+      isPrivate === "true" ? true : isPrivate === "false" ? false : null;
 
     // Fetch all channels (with optional isPrivate filter)
     const channels = await ChannelModel.findAll(isPrivateFilter);
 
     res.status(200).json({ channels });
   } catch (err) {
-    console.error('Error fetching channels:', err.message);
-    res.status(500).json({ message: 'Error fetching channels', error: err.message });
+    console.error("Error fetching channels:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error fetching channels", error: err.message });
   }
 };
 
@@ -65,13 +70,15 @@ exports.getChannelByHandle = async (req, res) => {
     // Fetch the channel by handle
     const channel = await ChannelModel.findByHandle(handle);
     if (!channel) {
-      return res.status(404).json({ message: 'Channel not found' });
+      return res.status(404).json({ message: "Channel not found" });
     }
 
     res.status(200).json({ channel });
   } catch (err) {
-    console.error('Error fetching channel:', err.message);
-    res.status(500).json({ message: 'Error fetching channel', error: err.message });
+    console.error("Error fetching channel:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error fetching channel", error: err.message });
   }
 };
 
@@ -86,9 +93,11 @@ exports.deleteChannel = async (req, res) => {
     // Delete the channel
     await ChannelModel.deleteById(id);
 
-    res.status(200).json({ message: 'Channel deleted successfully' });
+    res.status(200).json({ message: "Channel deleted successfully" });
   } catch (err) {
-    console.error('Error deleting channel:', err.message);
-    res.status(500).json({ message: 'Error deleting channel', error: err.message });
+    console.error("Error deleting channel:", err.message);
+    res
+      .status(500)
+      .json({ message: "Error deleting channel", error: err.message });
   }
 };
