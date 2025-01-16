@@ -41,6 +41,19 @@ const ROUTES = [
       },
     },
   },
+  {
+    url: "/community-service",
+    auth: true,
+    checkProfile: true,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
+    proxy: {
+      target: "http://community-service:4001",
+      changeOrigin: true,
+    },
+  },
 ];
 
 exports.ROUTES = ROUTES;

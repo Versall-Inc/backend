@@ -1,6 +1,7 @@
 version: "3.8"
 
 services:
+  # -------------------- API GATEWAY --------------------
   api-gateway:
     build:
       context: ./api-gateway
@@ -22,6 +23,7 @@ services:
       - node_modules1:/server/node_modules
     restart: unless-stopped
 
+  # -------------------- USER MANAGEMENT --------------------
   user-management-service:
     build:
       context: ./user-management
@@ -45,6 +47,7 @@ services:
       - node_modules2:/server/node_modules
     restart: unless-stopped
 
+  # -------------------- USER DATA DB --------------------
   user-data-db:
     image: postgres:15
     container_name: postgres_container
@@ -60,11 +63,52 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  # -------------------- COMMUNITY SERVICE --------------------
+  community-service:
+    build:
+      context: ./community-service
+    ports:
+      - "4001:4001"
+    depends_on:
+      - community-db
+    networks:
+      - intelligence-network
+    environment:
+      - DB_HOST=community-db
+      - DB_PORT=5433
+      - DB_NAME=community-db
+      - DB_USER=communityuser
+      - DB_PASSWORD=communitypassword
+      - CHOKIDAR_USEPOLLING=true
+      - PORT=4001
+    volumes:
+      - ./community-service:/server
+      - node_modules3:/server/node_modules
+    restart: unless-stopped
+
+  # -------------------- COMMUNITY DB --------------------
+  community-db:
+    image: postgres:15
+    container_name: community_postgres_container
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: community-db
+      POSTGRES_USER: communityuser
+      POSTGRES_PASSWORD: communitypassword
+    networks:
+      - intelligence-network
+    volumes:
+      - community_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
 networks:
   intelligence-network:
     driver: bridge
 
 volumes:
   postgres_data:
+  community_postgres_data:
   node_modules1:
   node_modules2:
+  node_modules3:

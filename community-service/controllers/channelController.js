@@ -1,103 +1,104 @@
-const ChannelModel = require("../models/channelModel");
-const { v4: uuidv4 } = require("uuid");
+const { Channel } = require("../models");
 
-/**
- * @desc Create a new channel
- * @route POST /channels
- */
 exports.createChannel = async (req, res) => {
+  const userId = req.user.id;
   try {
-    const { name, handle, isPrivate } = req.body;
-
-    // Check if the handle already exists
-    const existingChannel = await ChannelModel.findByHandle(handle);
-    if (existingChannel) {
-      return res.status(400).json({ message: "Channel handle already exists" });
-    }
-
-    const photo = req.file ? req.file.filename : null;
-
-    // Create the channel
-    await ChannelModel.create({
+    const { name, isPublic } = req.body;
+    const channel = await Channel.create({
       name,
-      handle,
-      isPrivate: isPrivate === "true", // Convert string "true"/"false" to boolean
-      ownerId: req.user.id, // Extracted from authentication middleware
-      photo,
+      isPublic,
+      createdBy: userId,
+      members: [userId],
     });
-
-    res.status(201).json({ message: "Channel created successfully" });
-  } catch (err) {
-    console.error("Error creating channel:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error creating channel", error: err.message });
+    return res.status(201).json(channel);
+  } catch (error) {
+    console.error("Error creating channel:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * @desc Get all channels
- * @route GET /channels
- */
-exports.getChannels = async (req, res) => {
+exports.getAllChannels = async (req, res) => {
   try {
-    const { isPrivate } = req.query;
-
-    // If isPrivate is provided, convert it to boolean
-    const isPrivateFilter =
-      isPrivate === "true" ? true : isPrivate === "false" ? false : null;
-
-    // Fetch all channels (with optional isPrivate filter)
-    const channels = await ChannelModel.findAll(isPrivateFilter);
-
-    res.status(200).json({ channels });
-  } catch (err) {
-    console.error("Error fetching channels:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error fetching channels", error: err.message });
+    const channels = await Channel.findAll();
+    return res.json(channels);
+  } catch (error) {
+    console.error("Error getting channels:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * @desc Get a single channel by handle
- * @route GET /channels/:handle
- */
-exports.getChannelByHandle = async (req, res) => {
+exports.getChannelById = async (req, res) => {
   try {
-    const { handle } = req.params;
-
-    // Fetch the channel by handle
-    const channel = await ChannelModel.findByHandle(handle);
+    const { channelId } = req.params;
+    const channel = await Channel.findByPk(channelId);
     if (!channel) {
-      return res.status(404).json({ message: "Channel not found" });
+      return res.status(404).json({ error: "Channel not found" });
+    }
+    return res.json(channel);
+  } catch (error) {
+    console.error("Error getting channel by ID:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.updateChannel = async (req, res) => {
+  try {
+    const { channelId } = req.params;
+    const { name, isPublic } = req.body;
+
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    res.status(200).json({ channel });
-  } catch (err) {
-    console.error("Error fetching channel:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error fetching channel", error: err.message });
+    channel.name = name ?? channel.name;
+    channel.isPublic =
+      typeof isPublic === "boolean" ? isPublic : channel.isPublic;
+    await channel.save();
+
+    return res.json(channel);
+  } catch (error) {
+    console.error("Error updating channel:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * @desc Delete a channel by ID
- * @route DELETE /channels/:id
- */
+exports.addMember = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    const { channelId } = req.params;
+    const { userId } = req.body;
+
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
+    }
+
+    if (channel.members.includes(userId)) {
+      return res.status(400).json({ error: "User is already a member" });
+    }
+
+    channel.members.push(userId);
+    await channel.save();
+
+    return res.json(channel);
+  } catch (error) {
+    console.error("Error adding member to channel:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 exports.deleteChannel = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    // Delete the channel
-    await ChannelModel.deleteById(id);
-
-    res.status(200).json({ message: "Channel deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting channel:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error deleting channel", error: err.message });
+    const { channelId } = req.params;
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
+    }
+    await channel.destroy();
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting channel:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

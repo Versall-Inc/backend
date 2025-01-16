@@ -1,129 +1,134 @@
-const PostModel = require("../models/postModel");
+const { Post, Channel } = require("../models");
 
-/**
- * @desc Create a new post
- * @route POST /posts
- */
 exports.createPost = async (req, res) => {
   try {
-    const { channelId, text, description } = req.body;
-    const photo = req.file ? req.file.filename : null;
+    const { channelId } = req.params;
+    const { content } = req.body;
+    // const userId = req.user.id;  // assume we have the user info
 
-    // Validate input
-    if (!channelId || (!text && !description && !photo)) {
-      return res.status(400).json({
-        message:
-          "Channel ID and at least one content field (text, description, or photo) are required",
-      });
+    // Check channel
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    const newPost = {
+    // If channel is private, ensure user has access (assume function or check)
+    // if (!channel.isPublic && !userIsInChannel(req.user.id, channelId)) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
+
+    const post = await Post.create({
+      content,
       channelId,
-      userId: req.user.id, // Extracted from the auth middleware
-      text: text || null,
-      description: description || null,
-      photo,
-    };
-
-    await PostModel.create(newPost);
-
-    res
-      .status(201)
-      .json({ message: "Post created successfully", post: newPost });
-  } catch (err) {
-    console.error("Error creating post:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error creating post", error: err.message });
+      // userId
+    });
+    return res.status(201).json(post);
+  } catch (error) {
+    console.error("Error creating post:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * @desc Get all posts for a specific channel
- * @route GET /posts/:channelId
- */
 exports.getPostsByChannel = async (req, res) => {
   try {
     const { channelId } = req.params;
 
-    if (!channelId) {
-      return res.status(400).json({ message: "Channel ID is required" });
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    const posts = await PostModel.findByChannelId(channelId);
+    // If channel is private, ensure user has access
+    // if (!channel.isPublic && !userIsInChannel(req.user.id, channelId)) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
 
-    res.status(200).json({ posts });
-  } catch (err) {
-    console.error("Error fetching posts:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error fetching posts", error: err.message });
+    const posts = await Post.findAll({ where: { channelId } });
+    return res.json(posts);
+  } catch (error) {
+    console.error("Error fetching posts by channel:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * @desc Get a specific post by ID
- * @route GET /posts/:id
- */
 exports.getPostById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { channelId, postId } = req.params;
 
-    if (!id) {
-      return res.status(400).json({ message: "Post ID is required" });
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    const post = await PostModel.findById(id);
+    // If channel is private, ensure user has access
+    // if (!channel.isPublic && !userIsInChannel(req.user.id, channelId)) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
 
+    const post = await Post.findOne({ where: { id: postId, channelId } });
     if (!post) {
-      return res.status(404).json({ message: "Post not found" });
+      return res.status(404).json({ error: "Post not found" });
     }
 
-    res.status(200).json({ post });
-  } catch (err) {
-    console.error("Error fetching post:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error fetching post", error: err.message });
+    return res.json(post);
+  } catch (error) {
+    console.error("Error fetching post by ID:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-/**
- * @desc Delete a post by ID
- * @route DELETE /posts/:id
- */
+exports.updatePost = async (req, res) => {
+  try {
+    const { channelId, postId } = req.params;
+    const { content } = req.body;
+
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
+    }
+
+    const post = await Post.findOne({ where: { id: postId, channelId } });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // If channel is private, check user access
+    // if (!channel.isPublic && post.userId !== req.user.id) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
+
+    post.content = content ?? post.content;
+    await post.save();
+
+    return res.json(post);
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 exports.deletePost = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    if (!id) {
-      return res.status(400).json({ message: "Post ID is required" });
+    const { channelId, postId } = req.params;
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    await PostModel.deleteById(id);
+    const post = await Post.findOne({ where: { id: postId, channelId } });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
 
-    res.status(200).json({ message: "Post deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting post:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error deleting post", error: err.message });
-  }
-};
+    // If channel is private, check user access
+    // if (!channel.isPublic && post.userId !== req.user.id) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
 
-/**
- * @desc Get all posts
- * @route GET /posts
- */
-exports.getAllPosts = async (req, res) => {
-  try {
-    const posts = await PostModel.findAll();
-
-    res.status(200).json({ posts });
-  } catch (err) {
-    console.error("Error fetching posts:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error fetching posts", error: err.message });
+    await post.destroy();
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

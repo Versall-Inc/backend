@@ -37,6 +37,58 @@ class UserRepository extends IUserRepository {
     }
   }
 
+  async getUsersByChannelId(channelId) {
+    try {
+      return await User.findAll({
+        where: {
+          channels: channelId,
+        },
+        attributes: [
+          "id",
+          "username",
+          "email",
+          "firstname",
+          "lastname",
+          "address",
+          "country",
+          "city",
+          "phoneNumber",
+          "accountStatus",
+          "subscriptionStatus",
+        ],
+      });
+    } catch (error) {
+      console.error("Error fetching all users by channel id:", error);
+      throw error;
+    }
+  }
+
+  async getUsersByCourseId(courseId) {
+    try {
+      return await User.findAll({
+        where: {
+          courses: courseId,
+        },
+        attributes: [
+          "id",
+          "username",
+          "email",
+          "firstname",
+          "lastname",
+          "address",
+          "country",
+          "city",
+          "phoneNumber",
+          "accountStatus",
+          "subscriptionStatus",
+        ],
+      });
+    } catch (error) {
+      console.error("Error fetching all users by course id:", error);
+      throw error;
+    }
+  }
+
   async getUserById(id, includePassword) {
     try {
       if (includePassword) {

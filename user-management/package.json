@@ -7,7 +7,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js"
   },
-  "author": "Mohammad Mehdi Ebrahimzadeh",
+  "author": "Interllicourse Team",
   "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.1.1",

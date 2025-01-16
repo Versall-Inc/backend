@@ -10,6 +10,16 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
+exports.getUsersByChannelId = async (req, res, next) => {
+  const { channelId } = req.params;
+  try {
+    const users = await userService.getUsersByChannelId(channelId);
+    res.status(200).json({ users });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get user by ID
 exports.getUserById = async (req, res, next) => {
   const { id } = req.params;
@@ -103,5 +113,27 @@ exports.deleteUser = async (req, res, next) => {
     res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     next(error); // Pass the error to the error handler middleware
+  }
+};
+
+// Community Service
+exports.getUsersByChannelId = async (req, res, next) => {
+  const { channelId } = req.params;
+  try {
+    const users = await userService.getUsersByChannelId(channelId);
+    res.status(200).json({ users });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Courses Service
+exports.getUsersByCourseId = async (req, res, next) => {
+  const { courseId } = req.params;
+  try {
+    const users = await userService.getUsersByCourseId(courseId);
+    res.status(200).json({ users });
+  } catch (error) {
+    next(error);
   }
 };

@@ -1,44 +1,35 @@
-const express = require('express');
-const {
-  createPost,
-  getPostsByChannel,
-  getPostById,
-  deletePost,
-  getAllPosts,
-} = require('../controllers/postController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const upload = require('../middlewares/uploadMiddleware');
-
+const express = require("express");
 const router = express.Router();
+const postController = require("../controllers/postController");
+const validate = require("../middlewares/validate");
 
-/**
- * @route POST /posts
- * @desc Create a new post
- */
-router.post('/', authMiddleware, upload.single('photo'), createPost);
+// Import Joi schemas
+const {
+  createPostSchema,
+  updatePostSchema,
+} = require("../validators/postValidators");
 
-/**
- * @route GET /posts/:channelId
- * @desc Get all posts for a specific channel
- */
-router.get('/:channelId', authMiddleware, getPostsByChannel);
+// Create new post in a channel
+router.post(
+  "/:channelId/posts",
+  validate(createPostSchema),
+  postController.createPost
+);
 
-/**
- * @route GET /posts/post/:id
- * @desc Get a specific post by ID
- */
-router.get('/post/:id', authMiddleware, getPostById);
+// Get all posts in a channel
+router.get("/:channelId/posts", postController.getPostsByChannel);
 
-/**
- * @route DELETE /posts/:id
- * @desc Delete a post by ID
- */
-router.delete('/:id', authMiddleware, deletePost);
+// Get a single post by ID
+router.get("/:channelId/posts/:postId", postController.getPostById);
 
-/**
- * @route GET /posts
- * @desc Get all posts
- */
-router.get('/', authMiddleware, getAllPosts);
+// Update a post
+router.put(
+  "/:channelId/posts/:postId",
+  validate(updatePostSchema),
+  postController.updatePost
+);
+
+// Delete a post
+router.delete("/:channelId/posts/:postId", postController.deletePost);
 
 module.exports = router;

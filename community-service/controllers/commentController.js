@@ -1,115 +1,125 @@
-const CommentModel = require("../models/commentModel");
-const { v4: uuidv4 } = require("uuid");
+const { Comment, Post, Channel } = require("../models");
 
-// Create a new comment or reply
 exports.createComment = async (req, res) => {
   try {
-    const { postId, text, parentId } = req.body;
+    const { channelId, postId } = req.params;
+    const { content, parentCommentId } = req.body;
+    // const userId = req.user.id;
 
-    // Validate input
-    if (!postId || !text) {
-      return res.status(400).json({ message: "Post ID and text are required" });
+    // Check channel
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    let level = 1;
+    // Check post
+    const post = await Post.findOne({ where: { id: postId, channelId } });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
 
-    // Determine the comment level based on parentId
-    if (parentId) {
-      const parentComment = await CommentModel.findById(parentId);
+    // If channel is private, ensure user has access
+    // if (!channel.isPublic && !userIsInChannel(userId, channelId)) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
+
+    let depth = 1;
+    if (parentCommentId) {
+      const parentComment = await Comment.findByPk(parentCommentId);
       if (!parentComment) {
+        return res.status(400).json({ error: "Parent comment does not exist" });
+      }
+      if (parentComment.postId !== postId) {
         return res
           .status(400)
-          .json({ message: "Parent comment does not exist" });
+          .json({ error: "Parent comment belongs to a different post" });
       }
-
-      level = parentComment.level + 1;
-
-      if (level > 3) {
+      if (parentComment.depth >= 3) {
         return res
           .status(400)
-          .json({ message: "Replies are limited to 3 levels" });
+          .json({ error: "Maximum comment nesting depth reached" });
       }
+      depth = parentComment.depth + 1;
     }
 
-    const newComment = {
-      id: uuidv4(),
+    const comment = await Comment.create({
+      content,
       postId,
-      userId: req.user.id,
-      text,
-      parentId: parentId || null,
-      level,
-      createdAt: new Date(),
-    };
+      parentCommentId: parentCommentId || null,
+      depth,
+      // userId,
+    });
 
-    await CommentModel.create(newComment);
-
-    res
-      .status(201)
-      .json({ message: "Comment created successfully", comment: newComment });
-  } catch (err) {
-    console.error("Error creating comment:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error creating comment", error: err.message });
+    return res.status(201).json(comment);
+  } catch (error) {
+    console.error("Error creating comment:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Get all comments for a post (with 3-level hierarchy)
-exports.getCommentsByPost = async (req, res) => {
+exports.getCommentsForPost = async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { channelId, postId } = req.params;
 
-    if (!postId) {
-      return res.status(400).json({ message: "Post ID is required" });
+    // Check channel
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    // Fetch all comments for the post
-    const comments = await CommentModel.findByPostId(postId);
+    // Check post
+    const post = await Post.findOne({ where: { id: postId, channelId } });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
 
-    // Build the 3-level hierarchy
-    const commentTree = comments
-      .filter((c) => c.level === 1)
-      .map((comment) => ({
-        ...comment,
-        replies: comments
-          .filter(
-            (reply) => reply.parent_id === comment.id && reply.level === 2
-          )
-          .map((reply) => ({
-            ...reply,
-            subReplies: comments.filter(
-              (subReply) =>
-                subReply.parent_id === reply.id && subReply.level === 3
-            ),
-          })),
-      }));
+    // If channel is private, ensure user has access
+    // if (!channel.isPublic && !userIsInChannel(req.user.id, channelId)) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
 
-    res.status(200).json({ comments: commentTree });
-  } catch (err) {
-    console.error("Error fetching comments:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error fetching comments", error: err.message });
+    // Get all comments (you could also build a nested hierarchy structure)
+    const comments = await Comment.findAll({
+      where: { postId },
+      order: [["createdAt", "ASC"]],
+    });
+
+    return res.json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Delete a comment and its replies
 exports.deleteComment = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { channelId, postId, commentId } = req.params;
 
-    if (!id) {
-      return res.status(400).json({ message: "Comment ID is required" });
+    // Check channel
+    const channel = await Channel.findByPk(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: "Channel not found" });
     }
 
-    // Recursively delete the comment and its child comments
-    await CommentModel.deleteByIdWithReplies(id);
+    // Check post
+    const post = await Post.findOne({ where: { id: postId, channelId } });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
 
-    res.status(200).json({ message: "Comment deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting comment:", err.message);
-    res
-      .status(500)
-      .json({ message: "Error deleting comment", error: err.message });
+    const comment = await Comment.findOne({ where: { id: commentId, postId } });
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    // if (comment.userId !== req.user.id) {
+    //   return res.status(403).json({ error: 'Access denied' });
+    // }
+
+    await comment.destroy();
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
