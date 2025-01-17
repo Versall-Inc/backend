@@ -116,22 +116,11 @@ exports.deleteUser = async (req, res, next) => {
   }
 };
 
-// Community Service
-exports.getUsersByChannelId = async (req, res, next) => {
-  const { channelId } = req.params;
+// Users by Ids
+exports.getUsersByIds = async (req, res, next) => {
+  const { ids } = req.body;
   try {
-    const users = await userService.getUsersByChannelId(channelId);
-    res.status(200).json({ users });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Courses Service
-exports.getUsersByCourseId = async (req, res, next) => {
-  const { courseId } = req.params;
-  try {
-    const users = await userService.getUsersByCourseId(courseId);
+    const users = await userService.getUsersByIds(ids);
     res.status(200).json({ users });
   } catch (error) {
     next(error);

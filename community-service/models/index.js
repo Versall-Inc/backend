@@ -1,40 +1,90 @@
 const sequelize = require("../config/database");
 const Channel = require("./channel");
 const Post = require("./post");
-const Like = require("./like");
 const Comment = require("./comment");
+const Like = require("./like");
+const ChannelMember = require("./channelMember");
 
-// ------------------- ASSOCIATIONS -------------------
+// -------------------------------------------------------------------------
+// Channel <-> Post
+// -------------------------------------------------------------------------
+Channel.hasMany(Post, {
+  as: "posts",
+  foreignKey: "channelId",
+});
+Post.belongsTo(Channel, {
+  as: "channel",
+  foreignKey: "channelId",
+});
 
-// A Channel has many Posts
-Channel.hasMany(Post, { foreignKey: "channelId", onDelete: "CASCADE" });
-Post.belongsTo(Channel, { foreignKey: "channelId" });
+// -------------------------------------------------------------------------
+// Post <-> Comment
+// -------------------------------------------------------------------------
+Post.hasMany(Comment, {
+  as: "comments",
+  foreignKey: "postId",
+});
+Comment.belongsTo(Post, {
+  as: "post",
+  foreignKey: "postId",
+});
 
-// A Post has many Likes
-Post.hasMany(Like, { foreignKey: "postId", onDelete: "CASCADE" });
-Like.belongsTo(Post, { foreignKey: "postId" });
+// -------------------------------------------------------------------------
+// Post <-> Like
+// -------------------------------------------------------------------------
+Post.hasMany(Like, {
+  as: "likes",
+  foreignKey: "postId",
+});
+Like.belongsTo(Post, {
+  as: "post",
+  foreignKey: "postId",
+});
 
-// A Post has many Comments
-Post.hasMany(Comment, { foreignKey: "postId", onDelete: "CASCADE" });
-Comment.belongsTo(Post, { foreignKey: "postId" });
+// -------------------------------------------------------------------------
+// Comment <-> Like
+// -------------------------------------------------------------------------
+Comment.hasMany(Like, {
+  as: "likes",
+  foreignKey: "commentId",
+});
+Like.belongsTo(Comment, {
+  as: "comment",
+  foreignKey: "commentId",
+});
 
-// A Comment can have replies (self-relation)
-// This allows nesting of comments
-Comment.hasMany(Comment, {
+// -------------------------------------------------------------------------
+// Comment self-reference
+// -------------------------------------------------------------------------
+Comment.belongsTo(Comment, {
+  as: "parentComment",
   foreignKey: "parentCommentId",
+});
+Comment.hasMany(Comment, {
   as: "replies",
+  foreignKey: "parentCommentId",
+});
+
+// -------------------------------------------------------------------------
+// Channel <-> ChannelMember
+// -------------------------------------------------------------------------
+Channel.hasMany(ChannelMember, {
+  foreignKey: "channelId",
   onDelete: "CASCADE",
 });
-Comment.belongsTo(Comment, {
-  foreignKey: "parentCommentId",
-  as: "parent",
+ChannelMember.belongsTo(Channel, {
+  foreignKey: "channelId",
+  onDelete: "CASCADE",
 });
 
-// Export models and sequelize connection
+// -------------------------------------------------------------------------
+// Export all models
+// -------------------------------------------------------------------------
 module.exports = {
-  sequelize,
   Channel,
   Post,
-  Like,
   Comment,
+  Like,
+  ChannelMember,
+  sequelize,
 };

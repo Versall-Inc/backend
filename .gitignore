@@ -44,3 +44,5 @@ go.work
 go.sum
 
 .vscode/
+
+course-generation/

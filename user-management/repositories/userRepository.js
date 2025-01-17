@@ -17,19 +17,7 @@ class UserRepository extends IUserRepository {
   async getAllUsers() {
     try {
       return await User.findAll({
-        attributes: [
-          "id",
-          "username",
-          "email",
-          "firstname",
-          "lastname",
-          "address",
-          "country",
-          "city",
-          "phoneNumber",
-          "accountStatus",
-          "subscriptionStatus",
-        ],
+        attributes: { exclude: ["password"] },
       });
     } catch (error) {
       console.error("Error fetching all users:", error);
@@ -37,54 +25,16 @@ class UserRepository extends IUserRepository {
     }
   }
 
-  async getUsersByChannelId(channelId) {
+  async getUsersByIds(ids) {
     try {
       return await User.findAll({
         where: {
-          channels: channelId,
+          id: ids,
         },
-        attributes: [
-          "id",
-          "username",
-          "email",
-          "firstname",
-          "lastname",
-          "address",
-          "country",
-          "city",
-          "phoneNumber",
-          "accountStatus",
-          "subscriptionStatus",
-        ],
+        attributes: { exclude: ["password"] },
       });
     } catch (error) {
-      console.error("Error fetching all users by channel id:", error);
-      throw error;
-    }
-  }
-
-  async getUsersByCourseId(courseId) {
-    try {
-      return await User.findAll({
-        where: {
-          courses: courseId,
-        },
-        attributes: [
-          "id",
-          "username",
-          "email",
-          "firstname",
-          "lastname",
-          "address",
-          "country",
-          "city",
-          "phoneNumber",
-          "accountStatus",
-          "subscriptionStatus",
-        ],
-      });
-    } catch (error) {
-      console.error("Error fetching all users by course id:", error);
+      console.error("Error fetching users by IDs:", error);
       throw error;
     }
   }

@@ -11,8 +11,12 @@ const Post = sequelize.define("Post", {
     type: DataTypes.UUID,
     allowNull: false,
   },
+  channelId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
   content: {
-    type: DataTypes.STRING(1000),
+    type: DataTypes.STRING(2000),
     allowNull: false,
   },
 });

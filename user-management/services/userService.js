@@ -15,12 +15,8 @@ const getUserById = async (id, includePassword = false) => {
   return await userRepository.getUserById(id, includePassword);
 };
 
-const getUsersByChannelId = async (channelId) => {
-  return await userRepository.getUsersByChannelId(channelId);
-};
-
-const getUsersByCourseId = async (courseId) => {
-  return await userRepository.getUsersByCourseId(courseId);
+const getUsersByIds = async (ids) => {
+  return await userRepository.getUsersByIds(ids);
 };
 
 const updateUser = async (id, userData) => {

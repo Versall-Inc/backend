@@ -4,9 +4,16 @@ const commentController = require("../controllers/commentController");
 const validate = require("../middlewares/validate");
 
 // Import Joi schemas
-const { createCommentSchema } = require("../validators/commentValidators");
+const {
+  createCommentSchema,
+  updateCommentSchema,
+} = require("../validators/commentValidators");
 
-// Create a comment for a post
+// ------------------------
+// Comment CRUD Routes
+// ------------------------
+
+// Create a new comment on a post
 router.post(
   "/:channelId/posts/:postId/comments",
   validate(createCommentSchema),
@@ -19,10 +26,17 @@ router.get(
   commentController.getCommentsForPost
 );
 
-// Delete a comment
+// Delete a specific comment
 router.delete(
   "/:channelId/posts/:postId/comments/:commentId",
   commentController.deleteComment
+);
+
+// (Optional) Update a specific comment
+router.put(
+  "/:channelId/posts/:postId/comments/:commentId",
+  validate(updateCommentSchema),
+  commentController.updateComment
 );
 
 module.exports = router;

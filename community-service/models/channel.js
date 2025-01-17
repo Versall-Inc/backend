@@ -1,3 +1,4 @@
+// models/Channel.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
@@ -11,24 +12,13 @@ const Channel = sequelize.define("Channel", {
     type: DataTypes.STRING(100),
     allowNull: false,
   },
-  createdBy: {
+  ownerId: {
     type: DataTypes.UUID,
     allowNull: false,
   },
   isPublic: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-  },
-  members: {
-    type: DataTypes.ARRAY(DataTypes.UUID),
-    allowNull: true,
-    validate: {
-      isUnique(value) {
-        if (value && value.length !== new Set(value).size) {
-          throw new Error("Member IDs must be unique");
-        }
-      },
-    },
   },
 });
 

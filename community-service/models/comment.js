@@ -11,6 +11,10 @@ const Comment = sequelize.define("Comment", {
     type: DataTypes.UUID,
     allowNull: false,
   },
+  postId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
   content: {
     type: DataTypes.STRING(1000),
     allowNull: false,

@@ -1,7 +1,27 @@
 version: "3.8"
 
 services:
-  # -------------------- API GATEWAY --------------------
+  # -------------------------------------------------------------------
+  #                         CENTRAL POSTGRES
+  # -------------------------------------------------------------------
+  central-postgres:
+    image: postgres:15
+    container_name: central_postgres_container
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+      - central_postgres_data:/var/lib/postgresql/data
+    networks:
+      - intelligence-network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------
+  #                           API GATEWAY
+  # -------------------------------------------------------------------
   api-gateway:
     build:
       context: ./api-gateway
@@ -9,10 +29,12 @@ services:
       - "3000:3000"
     networks:
       - intelligence-network
+    depends_on:
+      - central-postgres
     environment:
-      - DB_HOST=user-data-db
+      - DB_HOST=central-postgres
       - DB_PORT=5432
-      - DB_NAME=user-data-db
+      - DB_NAME=user_data_db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
       - CHOKIDAR_USEPOLLING=true
@@ -23,20 +45,22 @@ services:
       - node_modules1:/server/node_modules
     restart: unless-stopped
 
-  # -------------------- USER MANAGEMENT --------------------
+  # -------------------------------------------------------------------
+  #                      USER MANAGEMENT SERVICE
+  # -------------------------------------------------------------------
   user-management-service:
     build:
       context: ./user-management
     ports:
       - "4000:4000"
-    depends_on:
-      - user-data-db
     networks:
       - intelligence-network
+    depends_on:
+      - central-postgres
     environment:
-      - DB_HOST=user-data-db
+      - DB_HOST=central-postgres
       - DB_PORT=5432
-      - DB_NAME=user-data-db
+      - DB_NAME=user_data_db
       - DB_USER=myuser
       - DB_PASSWORD=mypassword
       - CHOKIDAR_USEPOLLING=true
@@ -47,38 +71,24 @@ services:
       - node_modules2:/server/node_modules
     restart: unless-stopped
 
-  # -------------------- USER DATA DB --------------------
-  user-data-db:
-    image: postgres:15
-    container_name: postgres_container
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: user-data-db
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-    networks:
-      - intelligence-network
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # -------------------- COMMUNITY SERVICE --------------------
+  # -------------------------------------------------------------------
+  #                       COMMUNITY SERVICE
+  # -------------------------------------------------------------------
   community-service:
     build:
       context: ./community-service
     ports:
       - "4001:4001"
-    depends_on:
-      - community-db
     networks:
       - intelligence-network
+    depends_on:
+      - central-postgres
     environment:
-      - DB_HOST=community-db
-      - DB_PORT=5433
-      - DB_NAME=community-db
-      - DB_USER=communityuser
-      - DB_PASSWORD=communitypassword
+      - DB_HOST=central-postgres
+      - DB_PORT=5432
+      - DB_NAME=community_db
+      - DB_USER=myuser
+      - DB_PASSWORD=mypassword
       - CHOKIDAR_USEPOLLING=true
       - PORT=4001
     volumes:
@@ -86,29 +96,38 @@ services:
       - node_modules3:/server/node_modules
     restart: unless-stopped
 
-  # -------------------- COMMUNITY DB --------------------
-  community-db:
-    image: postgres:15
-    container_name: community_postgres_container
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_DB: community-db
-      POSTGRES_USER: communityuser
-      POSTGRES_PASSWORD: communitypassword
-    networks:
-      - intelligence-network
-    volumes:
-      - community_postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+  # -------------------------------------------------------------------
+  #                      COURSE GENERATION SERVICE
+  # -------------------------------------------------------------------
+  # course-generation:
+  #   build:
+  #     context: ./course-generation
+  #   ports:
+  #     - "4002:5000"
+  #   networks:
+  #     - intelligence-network
+  #   depends_on:
+  #     - central-postgres
+  #   environment:
+  #     - DB_HOST=central-postgres
+  #     - DB_PORT=5432
+  #     - DB_NAME=course_db
+  #     - DB_USER=myuser
+  #     - DB_PASSWORD=mypassword
+  #     - CHOKIDAR_USEPOLLING=true
+  #     - PORT=5000
+  #   volumes:
+  #     - ./course-generation:/server
+  #     - node_modules4:/server/node_modules
+  #   restart: unless-stopped
 
 networks:
   intelligence-network:
     driver: bridge
 
 volumes:
-  postgres_data:
-  community_postgres_data:
+  central_postgres_data:
   node_modules1:
   node_modules2:
   node_modules3:
+  node_modules4:
