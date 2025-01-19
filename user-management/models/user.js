@@ -21,7 +21,7 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    address: {
+    timezone: {
       type: DataTypes.STRING,
       allowNull: true,
     },

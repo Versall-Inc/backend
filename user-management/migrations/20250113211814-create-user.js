@@ -16,7 +16,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
-      address: {
+      timezone: {
         type: Sequelize.STRING,
         allowNull: false,
       },
@@ -88,7 +88,5 @@ module.exports = {
     });
   },
 
-  async down(queryInterface, Sequelize) {
-
-  },
+  async down(queryInterface, Sequelize) {},
 };

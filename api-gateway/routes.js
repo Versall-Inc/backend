@@ -13,6 +13,19 @@ const ROUTES = [
     },
   },
   {
+    url: "/user-management/auth/me",
+    auth: true,
+    checkProfile: false,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
+    proxy: {
+      target: "http://user-management-service:4000/auth/me",
+      changeOrigin: true,
+    },
+  },
+  {
     url: "/user-management/auth",
     auth: false,
     checkProfile: false,

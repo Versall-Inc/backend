@@ -6,6 +6,7 @@ const onProxyReq = function (proxyReq, req, res) {
     proxyReq.setHeader("X-User-Email", req.user.email);
     proxyReq.setHeader("X-User-Username", req.user.username);
     proxyReq.setHeader("X-User-Profile-Completed", req.user.profileCompleted);
+    proxyReq.setHeader("X-User-Exp", req.user.exp);
   }
 };
 

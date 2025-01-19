@@ -7,6 +7,22 @@ const { Op } = require("sequelize");
 exports.register = async (req, res) => {
   const { username, email, password, phoneNumber } = req.body;
 
+  const whiteListEmails = [
+    "elifsaghbini@gmail.com",
+    "khalifa.seck@protonmail.com",
+    "arian.shariati@outlook.com",
+    "mohammadmahdi82.e@gmail.com",
+    "zrr.arshia@gmail.com",
+    "zakeri.arshia@yahoo.com",
+  ];
+
+  if (!whiteListEmails.includes(email.toString().toLowerCase())) {
+    return res.status(400).json({
+      error:
+        "It appears that your email address is not included in our beta testing list at this time. If you believe you should be on the list, please contact our team for assistance.",
+    });
+  }
+
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const isUserTaken = await User.findOne({
@@ -93,7 +109,7 @@ exports.completeProfile = async (req, res) => {
   const {
     firstname,
     lastname,
-    address,
+    timezone,
     country,
     city,
     accountStatus,
@@ -117,7 +133,7 @@ exports.completeProfile = async (req, res) => {
     user.firstname = firstname ?? user.firstname;
     user.lastname = lastname ?? user.lastname;
     user.profileCompleted = true;
-    user.address = address ?? user.address;
+    user.timezone = timezone ?? user.timezone;
     user.country = country ?? user.country;
     user.city = city ?? user.city;
     user.accountStatus = accountStatus ?? user.accountStatus;
@@ -129,10 +145,43 @@ exports.completeProfile = async (req, res) => {
     user.url_website = url_website ?? user.url_website;
     await user.save();
 
-    res.status(200).json(user);
+    const expiary = req.user.exp;
+    const expToFormat = expiary - Math.floor(Date.now() / 1000);
+    const exp = expToFormat > 86400 ? "30d" : "24h";
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profileCompleted: user.profileCompleted,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: exp,
+      }
+    );
+
+    res.status(200).json({ user, token });
   } catch (err) {
     logger.error("Profile completion failed:", err);
     console.log(err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};
+
+exports.getMe = async (req, res, next) => {
+  const id = req.user.id;
+  console.log(id);
+  try {
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ["password"] },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.status(200).json(user);
+  } catch (err) {
+    logger.error("Get user failed:", err);
     res.status(500).json({ error: "Internal server error." });
   }
 };

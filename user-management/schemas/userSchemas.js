@@ -19,7 +19,7 @@ const profileCompletionSchema = Joi.object({
   profilePicture: Joi.string().uri().optional(),
   firstname: Joi.string().min(3).max(100).required(),
   lastname: Joi.string().min(3).max(100).required(),
-  address: Joi.string().min(3).max(255).optional(),
+  timezone: Joi.string().min(2).max(100).required(),
   country: Joi.string().min(2).max(100).required(),
   city: Joi.string().min(2).max(100).required(),
   accountStatus: Joi.string()
@@ -41,7 +41,7 @@ const updateProfileSchema = Joi.object({
   profilePicture: Joi.string().uri().optional(),
   firstname: Joi.string().min(3).max(100).optional(),
   lastname: Joi.string().min(3).max(100).optional(),
-  address: Joi.string().min(3).max(255).optional(),
+  timezone: Joi.string().min(3).max(255).optional(),
   country: Joi.string().min(2).max(100).optional(),
   city: Joi.string().min(2).max(100).optional(),
   accountStatus: Joi.string().valid("active", "inactive").optional(),
