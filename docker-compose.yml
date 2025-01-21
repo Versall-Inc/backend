@@ -17,7 +17,12 @@ services:
       - central_postgres_data:/var/lib/postgresql/data
     networks:
       - intelligence-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
 
   # -------------------------------------------------------------------
   #                           API GATEWAY
@@ -30,7 +35,8 @@ services:
     networks:
       - intelligence-network
     depends_on:
-      - central-postgres
+      central-postgres:
+        condition: service_healthy
     environment:
       - DB_HOST=central-postgres
       - DB_PORT=5432
@@ -43,7 +49,12 @@ services:
     volumes:
       - ./api-gateway:/server
       - node_modules1:/server/node_modules
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
 
   # -------------------------------------------------------------------
   #                      USER MANAGEMENT SERVICE
@@ -56,7 +67,8 @@ services:
     networks:
       - intelligence-network
     depends_on:
-      - central-postgres
+      central-postgres:
+        condition: service_healthy
     environment:
       - DB_HOST=central-postgres
       - DB_PORT=5432
@@ -69,7 +81,12 @@ services:
     volumes:
       - ./user-management:/server
       - node_modules2:/server/node_modules
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
 
   # -------------------------------------------------------------------
   #                       COMMUNITY SERVICE
@@ -82,7 +99,8 @@ services:
     networks:
       - intelligence-network
     depends_on:
-      - central-postgres
+      central-postgres:
+        condition: service_healthy
     environment:
       - DB_HOST=central-postgres
       - DB_PORT=5432
@@ -94,7 +112,12 @@ services:
     volumes:
       - ./community-service:/server
       - node_modules3:/server/node_modules
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
 
   # -------------------------------------------------------------------
   #                      COURSE GENERATION SERVICE
@@ -107,7 +130,8 @@ services:
   #   networks:
   #     - intelligence-network
   #   depends_on:
-  #     - central-postgres
+  #     central-postgres:
+  #       condition: service_healthy
   #   environment:
   #     - DB_HOST=central-postgres
   #     - DB_PORT=5432
@@ -119,7 +143,12 @@ services:
   #   volumes:
   #     - ./course-generation:/server
   #     - node_modules4:/server/node_modules
-  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:5000"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   restart: always
 
 networks:
   intelligence-network:
@@ -131,3 +160,4 @@ volumes:
   node_modules2:
   node_modules3:
   node_modules4:
+#main
