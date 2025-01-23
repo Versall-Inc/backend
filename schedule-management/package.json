@@ -1,0 +1,24 @@
+{
+    "name": "schedule-management",
+    "version": "1.0.0",
+    "description": "Service for managing user schedules with MongoDB",
+    "license": "ISC",
+    "author": "",
+    "type": "commonjs",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "dependencies": {
+        "dotenv": "^16.0.3",
+        "express": "^4.18.2",
+        "mongoose": "^8.9.5",
+        "uuid": "^9.0.1",
+        "joi": "^17.9.2"
+
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.9"
+    }
+}
