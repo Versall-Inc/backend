@@ -9,7 +9,7 @@ const {
 
 router.get("/", userController.getAllUsers);
 router.get("/:id", userController.getUserById);
-router.get("/bulk/:ids", userController.getUsersByIds);
+router.post("/bulk", userController.getUsersByIds);
 router.put("/", validate(updateProfileSchema), userController.updateUser);
 router.put(
   "/change-password",

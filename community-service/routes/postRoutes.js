@@ -47,7 +47,7 @@ router.get("/:channelId/posts/:postId/details", postController.getPostDetails);
 
 // Paginate posts within a channel
 router.get(
-  "/:channelId/posts/paginate",
+  "/:channelId/paginate/posts",
   validate(paginatePostsSchema),
   postController.getPostsByChannelWithPagination
 );

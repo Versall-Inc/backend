@@ -1,4 +1,5 @@
-const { Comment, Post, Channel, ChannelMember } = require("../models");
+const { Comment, Post, Channel, ChannelMember, Like } = require("../models");
+const axios = require("axios");
 
 async function verifyChannelAccess(channel, userId) {
   if (channel.isPublic) {
@@ -103,6 +104,41 @@ exports.getCommentsForPost = async (req, res) => {
     const comments = await Comment.findAll({
       where: { postId },
       order: [["createdAt", "ASC"]],
+      include: [
+        {
+          model: Like,
+          as: "likes",
+          attributes: ["userId"],
+        },
+        {
+          model: Comment,
+          as: "replies",
+          include: [
+            {
+              model: Like,
+              as: "likes",
+              attributes: ["userId"],
+            },
+          ],
+        },
+      ],
+    });
+
+    const userIds = comments.map((m) => m.userId);
+
+    if (userIds.length === 0) {
+      return res.json([]);
+    }
+    const userData = await axios.post(
+      "http://user-management-service:4000/user/bulk",
+      {
+        ids: userIds,
+      }
+    );
+
+    comments.forEach((comment) => {
+      const user = userData.data.find((u) => u.id === comment.userId);
+      comment.dataValues.issuer = user;
     });
 
     return res.json(comments);

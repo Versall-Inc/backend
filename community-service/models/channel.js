@@ -12,8 +12,17 @@ const Channel = sequelize.define("Channel", {
     type: DataTypes.STRING(100),
     allowNull: false,
   },
+  topic: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+  },
   ownerId: {
     type: DataTypes.UUID,
+    allowNull: false,
+  },
+  inviteCode: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV1,
     allowNull: false,
   },
   isPublic: {

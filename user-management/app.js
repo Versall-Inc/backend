@@ -25,6 +25,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message });
 });
 
+// test route
+app.get("/", (req, res) => {
+  res.json({ message: "Hello World" });
+});
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -69,7 +69,7 @@ exports.likePost = async (req, res) => {
  ----------------------------------------------- */
 exports.unlikePost = async (req, res) => {
   try {
-    const { channelId, postId, likeId } = req.params;
+    const { channelId, postId } = req.params;
     const userId = req.user.id;
 
     // 1) Check channel
@@ -93,14 +93,15 @@ exports.unlikePost = async (req, res) => {
     }
 
     // 4) Find the like
-    const like = await Like.findByPk(likeId);
-    if (!like || like.postId !== postId) {
+    const like = await Like.findOne({
+      where: { postId, userId },
+    });
+    if (!like) {
       return res.status(404).json({ error: "Like not found" });
     }
 
-    // 5) Ensure the user is the one who created this like
+    // 5) Check ownership
     if (like.userId !== userId) {
-      // Or allow channel.ownerId === userId to also remove the like
       return res
         .status(403)
         .json({ error: "Cannot remove someone else's like" });
@@ -108,7 +109,7 @@ exports.unlikePost = async (req, res) => {
 
     // 6) Destroy the like
     await like.destroy();
-    return res.status(204).send();
+    return res.status(204).send({ message: "Like removed" });
   } catch (error) {
     console.error("Error unliking post:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -178,7 +179,7 @@ exports.likeComment = async (req, res) => {
  ----------------------------------------------- */
 exports.unlikeComment = async (req, res) => {
   try {
-    const { channelId, postId, commentId, likeId } = req.params;
+    const { channelId, postId, commentId } = req.params;
     const userId = req.user.id;
 
     // 1) Check channel
@@ -208,8 +209,10 @@ exports.unlikeComment = async (req, res) => {
     }
 
     // 5) Find the like
-    const like = await Like.findByPk(likeId);
-    if (!like || like.commentId !== commentId) {
+    const like = await Like.findOne({
+      where: { commentId, userId },
+    });
+    if (!like) {
       return res.status(404).json({ error: "Like not found" });
     }
 

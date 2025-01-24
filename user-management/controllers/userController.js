@@ -121,7 +121,7 @@ exports.getUsersByIds = async (req, res, next) => {
   const { ids } = req.body;
   try {
     const users = await userService.getUsersByIds(ids);
-    res.status(200).json({ users });
+    res.status(200).json(users);
   } catch (error) {
     next(error);
   }

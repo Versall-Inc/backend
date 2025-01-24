@@ -50,6 +50,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   const { email, username, password, remember } = req.body;
+  console.log(email, username, password, remember);
 
   if ((!email && !username) || !password) {
     return res

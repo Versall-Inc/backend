@@ -1,4 +1,5 @@
-const { Post, Channel, ChannelMember } = require("../models");
+const { Post, Channel, ChannelMember, Like, Comment } = require("../models");
+const axios = require("axios");
 
 // Helper: verify the user can at least "access" the channel
 async function verifyChannelAccess(channel, userId) {
@@ -79,7 +80,27 @@ exports.getPostsByChannel = async (req, res) => {
     }
 
     // 3) Fetch all posts in this channel
-    const posts = await Post.findAll({ where: { channelId } });
+    let posts = await Post.findAll({ where: { channelId } });
+
+    // 4) Prepare the userIds from post and sent them all to user-management service
+    //    to get the user details (name, email, etc.) for each post
+    const userIds = posts.map((post) => post.userId);
+    const usersData = await axios.post(
+      "http://user-management-service:4000/user/bulk",
+      {
+        ids: userIds,
+      }
+    );
+
+    // 5) Combine the user details with the posts
+    posts = posts.map((post) => {
+      const userData = usersData.data.find((user) => user.id === post.userId);
+      return {
+        ...post.toJSON(),
+        issuer: userData,
+      };
+    });
+
     return res.json(posts);
   } catch (error) {
     console.error("Error fetching posts by channel:", error);
@@ -298,19 +319,50 @@ exports.getPostsByChannelWithPagination = async (req, res) => {
         .json({ error: "Access denied: not a channel member" });
     }
 
-    // 3. Fetch paginated posts
+    // 3. Fetch paginated posts along with liked userIds
     const { count, rows: posts } = await Post.findAndCountAll({
       where: { channelId },
       limit,
       offset,
       order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: Like,
+          as: "likes",
+          attributes: ["userId"],
+        },
+        {
+          model: Comment,
+          as: "comments",
+          attributes: ["id"],
+        },
+      ],
+    });
+
+    // 4) Prepare the userIds from post and sent them all to user-management service
+    //    to get the user details (name, email, etc.) for each post
+    const userIds = posts.map((post) => post.userId);
+    const usersData = await axios.post(
+      "http://user-management-service:4000/user/bulk",
+      {
+        ids: userIds,
+      }
+    );
+
+    // 5) Combine the user details with the posts
+    let newPosts = posts.map((post) => {
+      const userData = usersData.data.find((user) => user.id === post.userId);
+      return {
+        ...post.toJSON(),
+        issuer: userData,
+      };
     });
 
     return res.json({
       totalItems: count,
       totalPages: Math.ceil(count / limit),
       currentPage: parseInt(page),
-      posts,
+      posts: newPosts,
     });
   } catch (error) {
     console.error("Error fetching paginated posts:", error);

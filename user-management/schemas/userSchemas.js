@@ -48,6 +48,7 @@ const updateProfileSchema = Joi.object({
   subscriptionStatus: Joi.string()
     .valid("subscribed", "unsubscribed")
     .optional(),
+  bio: Joi.string().min(3).max(300).optional(),
   refercode: Joi.string().optional(),
   referredBy: Joi.string().optional(),
   url_linkedin: Joi.string().uri().optional(),

@@ -48,7 +48,10 @@ router.delete("/:channelId", channelController.deleteChannel);
 // ------------------------
 
 // Join a channel (authenticated user joins)
-router.post("/:channelId/join", channelController.joinChannel);
+router.post("/:channelId/join/public", channelController.joinPublicChannel);
+
+// Join a channel (authenticated user joins)
+router.post("/:channelId/join/private", channelController.joinPrivateChannel);
 
 // Leave a channel (authenticated user leaves)
 router.post("/:channelId/leave", channelController.leaveChannel);
@@ -71,5 +74,11 @@ router.get("/:channelId/members", channelController.getMembers);
 
 // Get detailed member information by fetching from user-management service
 router.get("/:channelId/members/detail", channelController.getMembersDetail);
+
+// Pin a channel
+router.post("/:channelId/pin", channelController.pinAChannel);
+
+// Unpin a channel
+router.post("/:channelId/unpin", channelController.unpinAChannel);
 
 module.exports = router;

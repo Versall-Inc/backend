@@ -14,7 +14,7 @@ router.post(
 
 // Unlike a post
 router.delete(
-  "/channels/:channelId/posts/:postId/likes/:likeId",
+  "/channels/:channelId/posts/:postId/likes",
   likeController.unlikePost
 );
 
@@ -30,7 +30,7 @@ router.post(
 
 // Unlike a comment
 router.delete(
-  "/channels/:channelId/posts/:postId/comments/:commentId/likes/:likeId",
+  "/channels/:channelId/posts/:postId/comments/:commentId/likes/",
   likeController.unlikeComment
 );
 
