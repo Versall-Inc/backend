@@ -3,23 +3,27 @@ const Joi = require('joi');
 
 // Create a new event
 const eventValidationSchema = Joi.object({
-  userId: Joi.string().required(),
   eventId: Joi.string(),
   title: Joi.string().required(),
   type: Joi.string().required(),
   date: Joi.date().required(),
   startTime: Joi.date().required(),
   endTime: Joi.date().required(),
-  color: Joi.string().valid('blue', 'yellow', 'purple', 'green', 'red').required(),
+  color: Joi.string().valid('blue', 'orange', 'purple', 'green', 'red').required(),
   notes: Joi.string().optional(),
-  repeat: Joi.string().valid('none', 'daily', 'weekly', 'monthly').default('none'),
+  repeat: Joi.boolean().default(false),
+  repeatType: Joi.string().valid('daily', 'weekly', 'monthly'),
+  isDone: Joi.boolean().default(false),
 });
 
 // Create a new event
 const createEvent = async (req, res) => {
   try {
+    console.log(req.body);
     const validatedData = await eventValidationSchema.validateAsync(req.body);
-    const event = new Event(validatedData);
+    const userId = req.user.id;
+    const event = new Event({...validatedData, userId});
+    console.log(event);
     const savedEvent = await event.save();
     res.status(201).json(savedEvent);
   } catch (error) {
@@ -28,11 +32,12 @@ const createEvent = async (req, res) => {
 };
 
 // Get all events for a specific user
+
 const getEvents = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
-    const events = await Event.find({ userId: req.params.userId })
+    const events = await Event.find({ userId: req.user.id })
     .skip((page - 1) * limit)
     .limit(limit);
      res.status(200).json(events);

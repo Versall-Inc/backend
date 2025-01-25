@@ -34,16 +34,23 @@ const eventSchema = new mongoose.Schema(
     },
     color: {
       type: String,
-      enum: ['blue', 'yellow', 'purple', 'green', 'red'],
+      enum: ['blue', 'orange', 'purple', 'green', 'red'],
       required: true,
     },
     notes: {
       type: String,
     },
+    isDone: {
+      type: Boolean,
+      default: false,
+    },
     repeat: {
+      type: Boolean,
+      default: false,
+    },
+    repeatType: {
       type: String,
-      enum: ['none', 'daily', 'weekly', 'monthly'],
-      default: 'none',
+      enum: ['daily', 'weekly', 'monthly'],
     },
   },
   { timestamps: true }
