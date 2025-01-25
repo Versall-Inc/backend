@@ -150,6 +150,54 @@ services:
   #     retries: 3
   #   restart: always
 
+# -------------------------------------------------------------------
+  #                      SCHEDULE MANAGEMENT SERVICE
+  # -------------------------------------------------------------------
+  schedule-management-service:
+    build:
+      context: ./schedule-management
+    ports:
+      - "4002:4002"
+    networks:
+      - intelligence-network
+    environment:
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=schedule_db
+      - CHOKIDAR_USEPOLLING=true
+      - PORT=4002
+    volumes:
+      - ./schedule-management:/server
+      - node_modules4:/server/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+  # -------------------------------------------------------------------
+  #                           MONGODB
+  # -------------------------------------------------------------------
+  mongodb:
+    image: mongo:6
+    container_name: mongodb_container
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - intelligence-network
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'db.runCommand({ping: 1})' | mongo --quiet --username root --password rootpassword --authenticationDatabase admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
 networks:
   intelligence-network:
     driver: bridge
@@ -160,4 +208,5 @@ volumes:
   node_modules2:
   node_modules3:
   node_modules4:
+  mongodb_data:
 #main
