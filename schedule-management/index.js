@@ -1,7 +1,7 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('./config/db');
-const eventRoutes = require('./routes/eventRoutes');
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("./config/db");
+const eventRoutes = require("./routes/eventRoutes");
 const userMiddleware = require("./middlewares/userMiddleware");
 
 const app = express();
@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 
 // Routes
-app.use('/api/events',userMiddleware, eventRoutes);
+app.use("/api/events", userMiddleware, eventRoutes);
 
 // Server
 const PORT = process.env.PORT || 4002;

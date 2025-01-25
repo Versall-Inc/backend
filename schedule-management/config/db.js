@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-mongoose.set('strictQuery', true); // Optional: Suppress deprecation warnings
+mongoose.set("strictQuery", true); // Optional: Suppress deprecation warnings
 
 const connectDB = async () => {
   try {
@@ -9,9 +9,9 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('Connected to MongoDB successfully');
+    console.log("Connected to MongoDB successfully");
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error.message);
+    console.error("Failed to connect to MongoDB:", error.message);
     process.exit(1); // Exit process with failure
   }
 };
