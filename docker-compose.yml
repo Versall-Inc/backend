@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # -------------------------------------------------------------------
   #                         CENTRAL POSTGRES
@@ -120,37 +118,84 @@ services:
     restart: always
 
   # -------------------------------------------------------------------
-  #                      COURSE GENERATION SERVICE
+  #                              MONGO
   # -------------------------------------------------------------------
-  # course-generation:
-  #   build:
-  #     context: ./course-generation
-  #   ports:
-  #     - "4002:5000"
-  #   networks:
-  #     - intelligence-network
-  #   depends_on:
-  #     central-postgres:
-  #       condition: service_healthy
-  #   environment:
-  #     - DB_HOST=central-postgres
-  #     - DB_PORT=5432
-  #     - DB_NAME=course_db
-  #     - DB_USER=myuser
-  #     - DB_PASSWORD=mypassword
-  #     - CHOKIDAR_USEPOLLING=true
-  #     - PORT=5000
-  #   volumes:
-  #     - ./course-generation:/server
-  #     - node_modules4:/server/node_modules
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:5000"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #   restart: always
+  mongo:
+    image: mongo:6
+    container_name: mongo_container
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - intelligence-network
+    restart: always
 
-# -------------------------------------------------------------------
+  # -------------------------------------------------------------------
+  #                   COURSE MANAGEMENT SERVICE
+  # -------------------------------------------------------------------
+  course-management:
+    build:
+      context: ./course-management
+    container_name: course_management_container
+    ports:
+      - "4003:4003"
+    networks:
+      - intelligence-network
+    depends_on:
+      mongo:
+        condition: service_started
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/course_management_db
+      - CHOKIDAR_USEPOLLING=true
+      - PORT=4003
+    volumes:
+      - ./course-management:/server
+      - node_modules4:/server/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4003"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+  # -------------------------------------------------------------------
+  #                   COURSE GENERATION API
+  # -------------------------------------------------------------------
+  course-generation:
+    build:
+      context: ./course-generation
+    container_name: course_generation
+    ports:
+      - "4004:4004"
+    networks:
+      - intelligence-network
+    depends_on:
+      central-postgres:
+        condition: service_healthy
+    environment:
+      - PORT=4004
+      - OPENAI_API_KEY=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
+      - GOOGLE_API_KEY=AIzaSyARHb_1bhST7sqK0WkYZ7Orx3GB-hnAYAI
+      - UNSPLASH_ACCESS_KEY=rg_K-pdZq5TLF2cuTNGBGHg86M1dHywF2Nq05j1OOTM
+      - GPT_MODEL=gpt-4o
+      - TEMPERATURE=1
+      - QUIZ_DURATION=30 # mins
+      - ASSIGNMENT_DURATION=120 # mins
+      - QUIZ_QUESTIONS=5
+      - ASSIGNMENT_QUESTIONS=3
+      - MAX_VIDEO_RESULTS=5
+      - VIDEO_DURATION=medium
+    volumes:
+      - ./course-generation:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+  # -------------------------------------------------------------------
   #                      SCHEDULE MANAGEMENT SERVICE
   # -------------------------------------------------------------------
   schedule-management-service:
@@ -168,7 +213,7 @@ services:
       - PORT=4002
     volumes:
       - ./schedule-management:/server
-      - node_modules4:/server/node_modules
+      - node_modules5:/server/node_modules
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4002"]
       interval: 30s
@@ -183,7 +228,7 @@ services:
     image: mongo:6
     container_name: mongodb_container
     ports:
-      - "27017:27017"
+      - "27016:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -191,8 +236,13 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      MONGO_URI: mongodb://root:rootpassword@mongodb:27017/admin
     healthcheck:
-      test: ["CMD-SHELL", "echo 'db.runCommand({ping: 1})' | mongo --quiet --username root --password rootpassword --authenticationDatabase admin"]
+      test:
+        [
+          "CMD-SHELL",
+          "echo 'db.runCommand({ping: 1})' | mongo --quiet --username root --password rootpassword --authenticationDatabase admin",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -208,5 +258,6 @@ volumes:
   node_modules2:
   node_modules3:
   node_modules4:
+  node_modules5:
+  mongo_data:
   mongodb_data:
-#main

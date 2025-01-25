@@ -1,8 +1,0 @@
-CREATE TABLE assignments (
-  id SERIAL PRIMARY KEY,
-  course_id INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  due_date DATE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

@@ -68,6 +68,19 @@ const ROUTES = [
     },
   },
   {
+    url: "/course-management",
+    auth: true,
+    checkProfile: true,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
+    proxy: {
+      target: "http://course-management:4003",
+      changeOrigin: true,
+    },
+  },
+  {
     url: "/schedule-management",
     auth: true,
     checkProfile: true,
