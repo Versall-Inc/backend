@@ -67,6 +67,19 @@ const ROUTES = [
       changeOrigin: true,
     },
   },
+  {
+    url: "/schedule-management",
+    auth: true,
+    checkProfile: true,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
+    proxy: {
+      target: "http://schedule-management-service:4002",
+      changeOrigin: true,
+    },
+  },
 ];
 
 exports.ROUTES = ROUTES;

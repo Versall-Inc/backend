@@ -13,7 +13,7 @@ const router = express.Router();
 router.post('/', createEvent);
 
 // Route to get all events for a specific user
-router.get('/user/:userId', getEvents);
+router.get('/user/', getEvents);
 
 // Route to get a specific event by ID
 router.get('/:eventId', getEventById);
