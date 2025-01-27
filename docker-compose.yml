@@ -219,6 +219,30 @@ services:
       retries: 3
     restart: always
 
+  # -------------------------------------------------------------------
+  #                      REPORT MANAGEMENT SERVICE
+  # -------------------------------------------------------------------
+  report-management-service:
+    build:
+      context: ./report-management
+    ports:
+      - "4007:4007"
+    networks:
+      - intelligence-network
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/report_db
+      - CHOKIDAR_USEPOLLING=true
+      - PORT=4007
+    volumes:
+      - ./report-management:/server
+      - node_modules6:/server/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4007"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
 networks:
   intelligence-network:
     driver: bridge
@@ -230,4 +254,5 @@ volumes:
   node_modules3:
   node_modules4:
   node_modules5:
+  node_modules6:
   mongo_data:

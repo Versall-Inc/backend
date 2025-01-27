@@ -93,6 +93,19 @@ const ROUTES = [
       changeOrigin: true,
     },
   },
+  {
+    url: "/report-management",
+    auth: true,
+    checkProfile: true,
+    rateLimit: {
+      windowMs: 15 * 60 * 1000,
+      max: 500000,
+    },
+    proxy: {
+      target: "http://report-management-service:4007",
+      changeOrigin: true,
+    },
+  },
 ];
 
 exports.ROUTES = ROUTES;
