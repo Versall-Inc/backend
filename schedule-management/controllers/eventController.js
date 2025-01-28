@@ -19,8 +19,8 @@ const eventValidationSchema = Joi.object({
 // Create a new event
 const createEvent = async (req, res) => {
   try {
-    console.log(req.body);
     const validatedData = await eventValidationSchema.validateAsync(req.body);
+    console.log(validatedData);
     const userId = req.user.id;
     const event = new Event({...validatedData, userId});
     console.log(event);
