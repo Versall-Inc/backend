@@ -39,6 +39,7 @@ const eventSchema = new mongoose.Schema(
     },
     notes: {
       type: String,
+      required: false,
     },
     isDone: {
       type: Boolean,

@@ -242,6 +242,32 @@ services:
       timeout: 10s
       retries: 3
     restart: always
+ # -------------------------------------------------------------------
+  #                      USER EMAIL SERVICE
+  # -------------------------------------------------------------------
+  user-email-service:
+    build:
+      context: ./user-email-service
+    ports:
+      - "5010:5010"  
+    networks:
+      - intelligence-network
+    environment:
+      - USER_MANAGEMENT_API_URL=http://user-management-service:4000/user/bulk
+      - EMAIL_SERVICE_HOST=smtp.office365.com
+      - EMAIL_SERVICE_PORT=587 #465
+      - EMAIL_SERVICE_USER=contact@intellicourse.ca
+      - EMAIL_SERVICE_PASS=2024IntelliCourse!
+      - SERVER_PORT=5010
+    volumes:
+      - ./user-email-service:/server
+      - node_modules7:/server/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5010/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
 
 networks:
   intelligence-network:
@@ -255,4 +281,5 @@ volumes:
   node_modules4:
   node_modules5:
   node_modules6:
+  node_modules7:
   mongo_data:

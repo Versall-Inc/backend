@@ -23,7 +23,7 @@ const createEvent = async (req, res) => {
     console.log(validatedData);
     const userId = req.user.id;
     const event = new Event({...validatedData, userId});
-    console.log(event);
+    console.log("ineee " +event);
     const savedEvent = await event.save();
     res.status(201).json(savedEvent);
   } catch (error) {
