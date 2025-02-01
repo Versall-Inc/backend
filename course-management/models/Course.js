@@ -1,72 +1,22 @@
 // models/Course.js
 const mongoose = require("mongoose");
 
-// QUESTION schema
-const questionSchema = new mongoose.Schema({
-  type: {
-    type: String,
-    enum: ["multiple_choice", "true_false", "short_answer", "essay"],
-    required: true,
-  },
-  question: { type: String, required: true },
-  options: [{ type: String }], // for multiple_choice / true_false
-  correct_answer: { type: Number }, // index in 'options', or 0/1 for T/F
-  explanation: { type: String },
-  points: { type: Number, default: 1 },
-});
-
-// QUIZ schema
-const quizSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  due_date: { type: Date },
-  questions: [questionSchema],
-  overview: { type: String },
-  total_points: { type: Number, default: 0 },
-});
-
-// ASSIGNMENT schema
-const assignmentSchema = new mongoose.Schema({
-  overview: { type: String },
-  due_date: { type: Date },
-  title: { type: String },
-  assignment_type: {
-    type: String,
-    enum: ["writing", "presentation"],
-    required: true,
-  },
-});
-
-// CHAPTER schema
-const chapterSchema = new mongoose.Schema({
-  youtube_query: { type: String },
-  youtube_link: { type: String },
-  content: { type: String },
-  completed: { type: Boolean, default: false },
-  title: { type: String },
-});
-
-// UNIT schema
-const unitSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  chapters: [chapterSchema],
-
-  // assignment & quiz are optional depending on course.assignment_types
-  assignment: assignmentSchema,
-  quiz: quizSchema,
-});
-
-// COURSE schema
 const courseSchema = new mongoose.Schema(
   {
-    is_public: { type: Boolean, default: false },
-    is_archived: { type: Boolean, default: false },
-    creator: { type: String, required: true },
-    users_can_moderate: { type: Boolean, default: false },
-    material_types: [{ type: String, enum: ["reading", "video"] }],
-    assignment_types: [
+    isPublic: { type: Boolean, default: false },
+    creatorId: { type: String, required: true }, // Changed from ObjectId to String
+    usersCanModerate: { type: Boolean, default: false },
+    materialTypes: [{ type: String, enum: ["reading", "video"] }],
+    assignmentTypes: [
       { type: String, enum: ["writing", "presentation", "quiz"] },
     ],
-    title: { type: String, required: true },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 5,
+      maxlength: 200,
+    },
     overview: { type: String },
     prompt: { type: String },
     category: { type: String },
@@ -76,20 +26,41 @@ const courseSchema = new mongoose.Schema(
       enum: ["beginner", "intermediate", "advanced"],
       default: "beginner",
     },
-    participants: [{ type: String }], // user IDs
-    units: [unitSchema],
-    archived_at: { type: Date },
-    push_count: { type: Number, default: 0 },
-    course_objectives: { type: String },
+    participants: [{ type: String }], // Array of userIds as strings
+    units: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }],
+    courseObjectives: { type: String },
+    generated: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Check if archived > 30 days
 courseSchema.methods.isArchiveExpired = function () {
-  if (!this.is_archived || !this.archived_at) return false;
-  const THIRTY_DAYS = 1000 * 60 * 60 * 24 * 30;
-  return Date.now() - this.archived_at.getTime() > THIRTY_DAYS;
+  const archiveDuration = 30 * 24 * 60 * 60 * 1000;
+  return this.createdAt.getTime() + archiveDuration < Date.now();
 };
+
+// Virtual to get total units
+courseSchema.virtual("totalUnits").get(function () {
+  return this.units.length;
+});
+
+// total chapters
+courseSchema.virtual("totalChapters").get(function () {
+  return this.units.reduce((acc, unit) => acc + unit.chapters.length, 0);
+});
+
+// total quizzes
+courseSchema.virtual("totalQuizzes").get(function () {
+  return this.units.reduce(
+    (acc, unit) =>
+      acc +
+      unit.chapters.reduce((acc, chapter) => acc + (chapter.quiz ? 1 : 0), 0),
+    0
+  );
+});
+
+// Ensure virtual fields are serialized
+courseSchema.set("toJSON", { virtuals: true });
+courseSchema.set("toObject", { virtuals: true });
 
 module.exports = mongoose.model("Course", courseSchema);

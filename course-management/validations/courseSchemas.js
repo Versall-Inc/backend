@@ -12,7 +12,7 @@ exports.createCourseSchema = Joi.object({
     .required(),
   title: Joi.string().optional(),
   overview: Joi.string().optional(),
-  prompt: Joi.string().required(),
+  prompt: Joi.string().min(10).required(),
   category: Joi.string().required(),
   subcategory: Joi.string().required(),
   difficulty: Joi.string()

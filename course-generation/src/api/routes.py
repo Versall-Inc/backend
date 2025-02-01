@@ -9,9 +9,12 @@ from src.models.schemas import (
     CoursePromptRequest,
     GeneratedCourseSchema,
     AssessmentRequest,
-    GradingResponse
+    GradingResponse,
+    UnitPromptRequest,
+    CourseMetadataSchema,
+    CompleteUnitSchema
 )
-from src.core.gpt import generate_course
+from src.core.gpt import generate_course_metadata, generate_unit_content
 from src.services.assessment import AssessmentGenerator
 from src.services.grading import GradingService
 from pydantic import ValidationError
@@ -121,21 +124,38 @@ def error_handler(func):
             )
     return wrapper
 
-@router.post("/generate-course", response_model=GeneratedCourseSchema)
+@router.post("/generate-course-outline", response_model=CourseMetadataSchema)
 @error_handler
-async def generate_course_endpoint(request: CoursePromptRequest):
+async def generate_course_outline_endpoint(request: CoursePromptRequest):
     """Generate a course from a prompt"""
     validate_course_request(request.prompt)
     
     try:
         logger.info(f"Generating course for prompt: {request.prompt}")
-        return await generate_course(request.prompt, request.category, request.subcategory, request.difficulty,request.material_types, request.assignment_types, OPENAI_API_KEY, TEMPERATURE)
+        return await generate_course_metadata(request.prompt, request.category, request.subcategory, request.difficulty, request.assignment_types, request.material_types, OPENAI_API_KEY, TEMPERATURE)
     except Exception as e:
         logger.error(f"Error generating course: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate course: {str(e)}"
         )
+
+@router.post("/generate-unit-content", response_model=CompleteUnitSchema)
+@error_handler
+async def generate_unit_content_endpoint(request: UnitPromptRequest):
+    """Generate a course from a prompt"""
+    validate_course_request(request.prompt)
+    
+    try:
+        logger.info(f"Generating course for prompt: {request.prompt}")
+        return await generate_unit_content(request.unit, request.prompt, request.difficulty, request.material_types, request.assignment_types, OPENAI_API_KEY, TEMPERATURE)
+    except Exception as e:
+        logger.error(f"Error generating course: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate course: {str(e)}"
+        )
+
 
 @router.post("/grade-assessment", response_model=GradingResponse)
 @error_handler

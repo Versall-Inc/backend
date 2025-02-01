@@ -4,9 +4,9 @@ const router = express.Router();
 const enrollmentController = require("../controllers/enrollmentController");
 
 // Enroll
-router.post("/", enrollmentController.enrollUser);
+router.post("/:courseId", enrollmentController.enrollUser);
 
-// View content
-router.get("/:courseId/content", enrollmentController.getCourseContent);
+// Unenroll
+router.delete("/:courseId", enrollmentController.unEnrollUser);
 
 module.exports = router;

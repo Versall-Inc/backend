@@ -175,7 +175,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=4004
-      - OPENAI_API_KEY=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
+      - OPENAI_API_KEY=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
       - GOOGLE_API_KEY=AIzaSyARHb_1bhST7sqK0WkYZ7Orx3GB-hnAYAI
       - UNSPLASH_ACCESS_KEY=rg_K-pdZq5TLF2cuTNGBGHg86M1dHywF2Nq05j1OOTM
       - GPT_MODEL=gpt-4o

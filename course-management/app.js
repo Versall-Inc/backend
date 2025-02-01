@@ -1,9 +1,9 @@
 // app.js
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
 const connectDB = require("./config/db");
 const userMiddleware = require("./middlewares/userMiddleware");
+const errorHandler = require("./middlewares/errorHandler");
 
 // Routes
 const courseRoutes = require("./routes/courseRoutes");
@@ -12,13 +12,12 @@ const assignmentRoutes = require("./routes/assignmentRoutes");
 const quizRoutes = require("./routes/quizRoutes");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
 // Connect to Mongo
 connectDB();
 
 // Parse user info from headers
+app.use(express.json());
 app.use(userMiddleware);
 
 // Register routes
@@ -30,6 +29,7 @@ app.use("/quiz", quizRoutes);
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });
 });
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 4002;
 app.listen(PORT, () => {
