@@ -1,12 +1,12 @@
-const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid'); // Import UUID
+const mongoose = require("mongoose");
+const { v4: uuidv4 } = require("uuid"); // Import UUID
 
 const eventSchema = new mongoose.Schema(
   {
     eventId: {
-      type: String, 
-      default: uuidv4, 
-      unique: true, 
+      type: String,
+      default: uuidv4,
+      unique: true,
     },
     userId: {
       type: String,
@@ -34,7 +34,7 @@ const eventSchema = new mongoose.Schema(
     },
     color: {
       type: String,
-      enum: ['blue', 'orange', 'purple', 'green', 'red'],
+      enum: ["blue", "orange", "purple", "green", "red"],
       required: true,
     },
     notes: {
@@ -51,12 +51,11 @@ const eventSchema = new mongoose.Schema(
     },
     repeatType: {
       type: String,
-      enum: ['daily', 'weekly', 'monthly'],
+      enum: ["daily", "weekly", "monthly"],
     },
   },
   { timestamps: true }
 );
 
-
 // Export the model
-module.exports = mongoose.model('Event', eventSchema);
+module.exports = mongoose.model("Event", eventSchema);

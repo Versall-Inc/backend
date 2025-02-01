@@ -10,7 +10,9 @@ from src.models.schemas import (
     UnitSchema,        
     ChapterSchema,      
     QuizSchema,
-    AssignmentSchema
+    AssignmentSchema,
+    CourseMetadataSchema,
+    CompleteUnitSchema
 )
 
 # Configure logging
@@ -91,10 +93,9 @@ async def strict_output(
         logger.info(f"strict_output completed in {duration}")
 
 # ---------------------------
-# COURSE GENERATION LOGIC
+# COURSE METADATA GENERATION
 # ---------------------------
-
-async def generate_course(
+async def generate_course_metadata(
     prompt: str,
     category: str,
     subcategory: str,
@@ -105,20 +106,16 @@ async def generate_course(
     temperature: float
 ) -> Dict[str, Any]:
     """
-    Even more granular approach:
-      1) Get top-level course skeleton (#units, #chapters).
-      2) For each unit -> retrieve unit title & how many chapters
-      3) For each chapter -> retrieve actual content
-      4) Then get quiz/assignment if needed
-      5) Combine everything into final course data
+    Generates the course skeleton, including title, overview, and units (with titles and number of chapters).
+    Does NOT generate chapters, quizzes, or assignments.
     """
     # STEP 1: SKELETON
     skeleton_system_prompt = """You are an expert course creator.
-    Only produce the top-level course info (title, overview, total_units, max_chapters_per_unit).
-    DO NOT list individual units or chapters. 
-    Return total_units as an integer. 
-    Also return max_chapters_per_unit as an integer.
-    """
+Only produce the top-level course info (title, overview, total_units, max_chapters_per_unit).
+DO NOT list individual units or chapters. 
+Return total_units as an integer. 
+Also return max_chapters_per_unit as an integer.
+"""
 
     skeleton_user_prompt = f"""
 Topic: {prompt}
@@ -148,24 +145,19 @@ Please provide:
     max_chapters_per_unit = max(1, skeleton_data.get("max_chapters_per_unit", 2))
     max_chapters_per_unit = min(5, max_chapters_per_unit)
 
-    # logger.info(f"SKELETON: {skeleton_data}")
 
-    # STEP 2: For each unit, get the UNIT title only, 
-    # plus how many chapters we want to generate (<= max_chapters_per_unit).
-    # We'll define a minimal schema to parse that: maybe "UnitMinimalSchema" with 'title' and 'num_chapters'.
-
+    # Define a minimal schema to parse unit information
     class UnitMinimalSchema(BaseModel):
         title: str
         num_chapters: int
 
     units = []
     for u_idx in range(total_units):
-        # ASK GPT for a single unit's title & how many chapters
+        # STEP 2: For each unit, get the UNIT title and number of chapters
         unit_title_system_prompt = """You are an expert course creator.
-        The user needs a single unit's title and how many chapters to create (<= max_chapters_per_unit).
-        """
+The user needs a single unit's title and how many chapters to create (<= max_chapters_per_unit).
+"""
 
-        # We'll store a user prompt:
         unit_title_user_prompt = f"""
 We have a course titled "{skeleton_data['title']}" (overview: {skeleton_data['overview']}).
 This is Unit #{u_idx+1} out of {total_units}, with {difficulty} difficulty.
@@ -175,6 +167,7 @@ Return:
 2) num_chapters (int): how many chapters you'll create (1 <= num_chapters <= {max_chapters_per_unit}).
 No quiz or assignment here yet.
 """
+
         partial_unit = await strict_output(
             system_prompt=unit_title_system_prompt,
             user_prompts=unit_title_user_prompt,
@@ -183,26 +176,59 @@ No quiz or assignment here yet.
             temperature=temperature
         )
 
-        # Now we have partial_unit["title"], partial_unit["num_chapters"]
-        # STEP 3: For each CHAPTER, get the actual content items 
-        chapters = []
-        for c_idx in range(partial_unit["num_chapters"]):
-            # We'll define a "ChapterSchema" that has "title, content, optional youtube_query"
-            # or you can reuse "ContentItem" from your pydantic if you have it as well
-            class ChapterSchema(BaseModel):
-                title: str
-                content: str
-                youtube_query: Optional[str] = None
+        units.append(partial_unit)
 
-            # Prompt GPT for a single chapter
-            chap_system_prompt = """You are an expert course creator.
-            The user wants to generate exactly one chapter (content item). 
-            Output (title, content, optional youtube_query). 
-            """
+    # Construct the metadata without chapters, quizzes, or assignments
+    course_metadata = {
+        "title": skeleton_data["title"],
+        "overview": skeleton_data["overview"],
+        "units": [
+            {
+                "title": unit["title"],
+                "num_chapters": unit["num_chapters"]
+            }
+            for unit in units
+        ]
+    }
 
-            chap_user_prompt = f"""
-We have a unit titled "{partial_unit['title']}" in a {difficulty} difficulty course on "{prompt}".
-Chapter #{c_idx+1} out of {partial_unit['num_chapters']}.
+    # Validate with your GeneratedCourseSchema (excluding chapters)
+    try:
+        final_parsed = CourseMetadataSchema(**course_metadata)
+        logger.info("Course metadata generation completed.")
+        return final_parsed.dict()
+    except Exception as e:
+        logger.error(f"Error in generate_course_metadata: {str(e)}")
+        raise
+
+# ---------------------------
+# UNIT CONTENT GENERATION
+# ---------------------------
+async def generate_unit_content(
+    unit: Dict[str, Any],
+    prompt: str,
+    difficulty: str,
+    material_types: List[str],
+    assignment_types: List[str],
+    api_key: str,
+    temperature: float,
+) -> Dict[str, Any]:
+    """
+    Generates detailed content for a given unit, including chapters, quizzes, and assignments.
+    """
+    unit_title = unit["title"]
+    num_chapters = unit["num_chapters"]
+
+    # STEP 1: Generate Chapters
+    chapters = []
+    for c_idx in range(num_chapters):
+        chap_system_prompt = """You are an expert course creator.
+The user wants to generate exactly one chapter (content item). 
+Output (title, content, optional youtube_query). 
+"""
+
+        chap_user_prompt = f"""
+We have a unit titled "{unit_title}" in a {difficulty} difficulty course on "{prompt}".
+Chapter #{c_idx+1} out of {num_chapters}.
 The user wants:
 - a `title` (string),
 - `content` (string)
@@ -211,66 +237,68 @@ The user wants:
 
 No quiz or assignment here. Return exactly one chapter object.
 """
+        if "video" in material_types:
+            chap_system_prompt = """You are an expert course creator.
+The user wants to generate exactly one chapter (content item). 
+Output (title, content, youtube_query). 
+"""
+            chap_user_prompt = f"""
+We have a unit titled "{unit_title}" in a {difficulty} difficulty course on "{prompt}".
+Chapter #{c_idx+1} out of {num_chapters}.
+The user wants:
+- a `title` (string),
+- `content` (string)
+  {('Detailed text with real-life examples.' if 'reading' in material_types else 'A concise summary focusing on key points.')}
+- `youtube_query` (string) for a relevant video.
 
-            single_chapter = await strict_output(
-                system_prompt=chap_system_prompt,
-                user_prompts=chap_user_prompt,
-                output_format=ChapterSchema,
-                api_key=api_key,
-                temperature=temperature
-            )
+No quiz or assignment here. Return exactly one chapter object.
+"""
+            
+        single_chapter = await strict_output(
+            system_prompt=chap_system_prompt,
+            user_prompts=chap_user_prompt,
+            output_format=ChapterSchema,
+            api_key=api_key,
+            temperature=temperature
+        )
 
-            chapters.append(single_chapter)
+        chapters.append(single_chapter)
 
-        # STEP 3b: Now get quiz/assignment for this unit if desired
-        quiz_assign_system_prompt = """You are an expert course creator.
-        The user wants optional quiz/assignment for a single unit. 
-        No chapter info here, just quiz or assignment or both.
-        """
+    logger.info(f"Generated {len(chapters)} chapters for unit '{unit_title}'.")
 
-        quiz_assign_user_prompt = f"""
-Unit title: {partial_unit['title']}.
+    # STEP 2: Generate Quizzes and Assignments
+    # Define the QuizAssignSchema inside this function
+    class QuizAssignSchema(BaseModel):
+        quiz: Optional[QuizSchema] = None
+        assignment: Optional[AssignmentSchema] = None
+
+    quiz_assign_system_prompt = """You are an expert course creator.
+The user wants optional quiz/assignment for a single unit. 
+No chapter info here, just quiz or assignment or both.
+"""
+
+    quiz_assign_user_prompt = f"""
+Unit title: {unit_title}.
 Assignment types allowed: {assignment_types}.
 If there's no quiz or assignment, return them as None.
 No reading or video assigned as assignment_type.
 """
 
-        # We'll define a small inline schema for quiz/assignment only
-        class QuizAssignSchema(BaseModel):
-            quiz: Optional[QuizSchema] = None
-            assignment: Optional[AssignmentSchema] = None
+    quiz_assign_data = await strict_output(
+        system_prompt=quiz_assign_system_prompt,
+        user_prompts=quiz_assign_user_prompt,
+        output_format=QuizAssignSchema,
+        api_key=api_key,
+        temperature=temperature
+    )
 
-        quiz_assign_data = await strict_output(
-            system_prompt=quiz_assign_system_prompt,
-            user_prompts=quiz_assign_user_prompt,
-            output_format=QuizAssignSchema,
-            api_key=api_key,
-            temperature=temperature
-        )
-
-        # Merge everything into a single unit dict
-        merged_unit = {
-            "title": partial_unit["title"],
-            "description": f"Auto-generated summary for unit {u_idx+1}",  # or you can ask GPT for a short desc
-            "chapters": chapters,   # each a dict with {title, content, youtube_query?}
-            "quiz": quiz_assign_data.get("quiz"),
-            "assignment": quiz_assign_data.get("assignment")
-        }
-        units.append(merged_unit)
-
-    # STEP 4: Construct final GeneratedCourseSchema
-    final_course_data = {
-        "title": skeleton_data["title"],
-        "overview": skeleton_data["overview"],
-        "units": units
+    # Construct the complete unit with chapters, quiz, and assignment
+    complete_unit = {
+        "title": unit_title,
+        "description": f"Auto-generated summary for unit '{unit_title}'",
+        "chapters": chapters,
+        "quiz": quiz_assign_data.get("quiz"),
+        "assignment": quiz_assign_data.get("assignment")
     }
 
-    # Validate with your GeneratedCourseSchema
-    try:
-        final_parsed = GeneratedCourseSchema(**final_course_data)
-        return final_parsed.dict()
-    except Exception as e:
-        logger.error(f"Error in generate_course: {str(e)}")
-        raise
-    finally:
-        logger.info("Course generation completed.")
+    return complete_unit

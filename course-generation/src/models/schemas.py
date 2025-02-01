@@ -163,3 +163,38 @@ class GeneratedCourseSchema(BaseModel):
     title: str
     overview: str
     units: List[UnitSchema]
+
+
+class UnitPromptRequest(BaseModel):
+    """Model for unit generation request"""
+    unit: Dict[str, Any] = Field(..., description="The unit data to generate content for")
+    prompt: str = Field(..., description="The prompt for generating the unit content")
+    difficulty: str = Field(..., description="The difficulty level of the unit")
+    material_types: List[str] = Field(..., description="The types of materials to include in the unit either video, reading")
+    assignment_types: List[str] = Field(..., description="The types of assignments to include in the unit either quiz, writing")
+
+
+class UnitMetadataSchema(BaseModel):
+    title: str = Field(..., description="The title of the unit.")
+    num_chapters: int = Field(ge=1, le=5)  # Ensure num_chapters is between 1-5
+
+
+class CourseMetadataSchema(BaseModel):
+    title: str = Field(..., description="The title of the course.")
+    overview: str = Field(..., description="A short description of the course.")
+    units: List[UnitMetadataSchema] = Field(..., description="A list of units within the course.")
+
+class CompleteUnitSchema(BaseModel):
+    title: str = Field(..., description="The title of the unit.")
+    description: str = Field(
+        ..., description="A summary description of the unit."
+    )
+    chapters: List[ChapterSchema] = Field(
+        ..., description="A list of chapters within the unit."
+    )
+    quiz: Optional[QuizSchema] = Field(
+        None, description="An optional quiz for the unit."
+    )
+    assignment: Optional[AssignmentSchema] = Field(
+        None, description="An optional assignment for the unit."
+    )

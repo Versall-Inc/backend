@@ -2,7 +2,7 @@ const Joi = require("joi");
 
 const registrationSchema = Joi.object({
   email: Joi.string().email().required(),
-  username: Joi.string().alphanum().min(3).max(30).required(),
+  username: Joi.string().min(3).max(30).required(),
   password: Joi.string().min(8).required(),
   confirmPassword: Joi.string().valid(Joi.ref("password")).required().messages({
     "any.only": "Confirm password must match password",

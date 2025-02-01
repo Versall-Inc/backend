@@ -6,7 +6,6 @@ const errorHandler = require("./middlewares/errorHandler");
 const userMiddleware = require("./middlewares/userMiddleware");
 const logger = require("./utils/logger");
 require("dotenv").config();
-const cors = require("cors");
 
 const app = express();
 
@@ -17,7 +16,6 @@ console.log(`Running in ${environment} mode`);
 app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/user", userMiddleware, userRoutes);
-app.use(cors());
 app.use(errorHandler);
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -94,28 +94,6 @@ const User = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    courses: {
-      type: DataTypes.ARRAY(DataTypes.UUID),
-      allowNull: true,
-      validate: {
-        isUnique(value) {
-          if (value && value.length !== new Set(value).size) {
-            throw new Error("Course IDs must be unique");
-          }
-        },
-      },
-    },
-    channels: {
-      type: DataTypes.ARRAY(DataTypes.UUID),
-      allowNull: true,
-      validate: {
-        isUnique(value) {
-          if (value && value.length !== new Set(value).size) {
-            throw new Error("Channel IDs must be unique");
-          }
-        },
-      },
-    },
   },
   {
     timestamps: true,

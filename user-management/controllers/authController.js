@@ -50,7 +50,6 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   const { email, username, password, remember } = req.body;
-  console.log(email, username, password, remember);
 
   if ((!email && !username) || !password) {
     return res
@@ -172,7 +171,6 @@ exports.completeProfile = async (req, res) => {
 
 exports.getMe = async (req, res, next) => {
   const id = req.user.id;
-  console.log(id);
   try {
     const user = await User.findByPk(id, {
       attributes: { exclude: ["password"] },
@@ -180,7 +178,7 @@ exports.getMe = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
-    res.status(200).json(user);
+    return res.status(200).json(user);
   } catch (err) {
     logger.error("Get user failed:", err);
     res.status(500).json({ error: "Internal server error." });
