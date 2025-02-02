@@ -1,5 +1,7 @@
 import openai
 import json
+import aiohttp
+from urllib.parse import quote
 import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -14,6 +16,8 @@ from src.models.schemas import (
     CourseMetadataSchema,
     CompleteUnitSchema
 )
+import os
+
 
 # Configure logging
 logging.basicConfig(
@@ -262,6 +266,8 @@ No quiz or assignment here. Return exactly one chapter object.
             temperature=temperature
         )
 
+        single_chapter["youtube_link"] = await search_youtube(single_chapter.get("youtube_query"))
+
         chapters.append(single_chapter)
 
     logger.info(f"Generated {len(chapters)} chapters for unit '{unit_title}'.")
@@ -302,3 +308,28 @@ No reading or video assigned as assignment_type.
     }
 
     return complete_unit
+
+
+
+async def search_youtube(search_query):
+    api_key = os.getenv("GOOGLE_API_KEY")
+    url = f"https://www.googleapis.com/youtube/v3/search?key={api_key}&q={search_query}&videoEmbeddable=true&type=video&maxResults=5"
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                print("YouTube API request failed")
+                return None
+            data = await response.json()
+    
+    print(data)
+    if not data or "items" not in data or not data["items"]:
+        print("YouTube API returned no results")
+        return None
+    
+    for item in data["items"]:
+        video_id = item["id"].get("videoId")
+        if video_id:
+            return video_id
+    
+    return ""

@@ -37,8 +37,8 @@ async function generateCourseOutline(payload) {
     category: payload.category,
     subcategory: payload.subcategory,
     difficulty: payload.difficulty,
-    material_types: payload.material_types,
-    assignment_types: payload.assignment_types,
+    material_types: payload.materialTypes,
+    assignment_types: payload.assignmentTypes,
   });
   return response.data;
 }
@@ -64,11 +64,11 @@ const checkCourseLimit = async (creatorId) => {
 /**
  * Handles the asynchronous creation of the course and its related entities.
  */
-const createCourseAsync = async (payload, generatedData, newCourse) => {
+const createCourseAsync = async (payload, generatedData, newCourse, userId) => {
   try {
     console.log(`Initial course created with ID: ${newCourse._id}`);
 
-    const queue = initializeQueue(newCourse, payload, generatedData);
+    const queue = initializeQueue(newCourse, payload, generatedData, userId);
 
     // Push all units to the queue
     generatedData.units.forEach((unit) => {
@@ -102,10 +102,10 @@ const createCourseAsync = async (payload, generatedData, newCourse) => {
 /**
  * Initializes the Course document without units.
  */
-const initializeCourse = async (payload, generatedData) => {
+const initializeCourse = async (payload, generatedData, userId) => {
   const initialCourseData = {
     creatorId: payload.creatorId,
-    isPublic: Boolean(payload.isPublic),
+    isPublic: Boolean(payload.isPublic || true),
     usersCanModerate: Boolean(payload.usersCanModerate),
     materialTypes: payload.materialTypes, // Array of strings
     assignmentTypes: payload.assignmentTypes, // Array of strings
@@ -117,6 +117,8 @@ const initializeCourse = async (payload, generatedData) => {
     difficulty: payload.difficulty,
     courseObjectives: payload.courseObjectives,
     units: [], // Initialize with an empty array
+    generated: false,
+    participants: [userId],
   };
 
   const newCourse = new Course(initialCourseData);
@@ -127,7 +129,7 @@ const initializeCourse = async (payload, generatedData) => {
 /**
  * Initializes the async.queue with a concurrency limit and a worker function.
  */
-const initializeQueue = (newCourse, payload, generatedData) => {
+const initializeQueue = (newCourse, payload, generatedData, userId) => {
   const q = asyncLib.queue((unitData, callback) => {
     // Remove the 'async' keyword to ensure 'callback' is a function
     processUnit(unitData, payload, generatedData, newCourse._id)
@@ -142,6 +144,45 @@ const initializeQueue = (newCourse, payload, generatedData) => {
           console.log(
             `Unit "${unit.title}" added to course "${newCourse.title}".`
           );
+
+          const enrollment = await Enrollment.findOne({
+            course: newCourse._id,
+            userId,
+          });
+
+          if (!enrollment) {
+            await enrollCreator(userId, newCourse._id);
+          }
+          const unitProgress = {
+            unit: unit._id,
+            completed: false,
+            chaptersProgress: unit.chapters.map((chapter) => ({
+              chapter: chapter._id,
+              completed: false,
+            })),
+            assignmentProgress: unit.assignment
+              ? {
+                  assignment: unit.assignment,
+                  submitted: false,
+                  submissionDate: null,
+                  grad: null,
+                  feedback: null,
+                }
+              : null,
+            quizProgress: unit.quiz
+              ? {
+                  quiz: unit.quiz,
+                  completed: false,
+                  score: null,
+                  attempts: 0,
+                  lastAttempted: null,
+                }
+              : null,
+          };
+
+          enrollment.progress.unitsProgress.push(unitProgress);
+          await enrollment.save();
+
           callback(); // Indicate successful task completion
         } catch (updateError) {
           console.error(
@@ -168,6 +209,8 @@ const processUnit = async (unitData, payload, generatedData, courseId) => {
   let generatedUnit = await generateUnitContent({
     ...generatedData,
     ...payload,
+    material_types: payload.materialTypes,
+    assignment_types: payload.assignmentTypes,
     unit: unitData,
   });
   generatedUnit = generatedUnit.data;
@@ -217,7 +260,7 @@ const createChapters = async (generatedUnit, unitId) => {
       title: chapterData.title,
       content: chapterData.content,
       youtubeQuery: chapterData.youtube_query,
-      // TODO: youtube_link
+      youtubeLink: chapterData.youtube_link,
     });
     return chapter.save();
   });
@@ -334,12 +377,23 @@ const createAssignment = async (generatedUnit, unitId, unitTitle) => {
  */
 const enrollCreator = async (userId, courseId) => {
   try {
+    const units = await Unit.find({ course: courseId });
+
+    const unitsProgress = units.map((unit) => ({
+      unit: unit._id,
+      completed: false,
+      chaptersProgress: [],
+      assignmentsProgress: [],
+      quizzesProgress: [],
+    }));
+
     const enrollment = new Enrollment({
       userId,
       course: courseId,
       progress: {
         overallProgress: 0,
-        unitsProgress: [],
+        startedAt: new Date(),
+        unitsProgress,
       },
     });
     await enrollment.save();

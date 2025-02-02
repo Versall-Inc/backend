@@ -10,6 +10,7 @@ const courseRoutes = require("./routes/courseRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
 const assignmentRoutes = require("./routes/assignmentRoutes");
 const quizRoutes = require("./routes/quizRoutes");
+const chaptersRoutes = require("./routes/chapterRoutes");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/courses", courseRoutes);
 app.use("/enrollments", enrollmentRoutes);
 app.use("/assignments", assignmentRoutes);
 app.use("/quiz", quizRoutes);
+app.use("/chapters", chaptersRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });

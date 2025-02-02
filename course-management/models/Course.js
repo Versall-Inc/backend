@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 
 const courseSchema = new mongoose.Schema(
   {
-    isPublic: { type: Boolean, default: false },
+    isPublic: { type: Boolean, default: true },
     creatorId: { type: String, required: true }, // Changed from ObjectId to String
     usersCanModerate: { type: Boolean, default: false },
     materialTypes: [{ type: String, enum: ["reading", "video"] }],
@@ -33,11 +33,6 @@ const courseSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-courseSchema.methods.isArchiveExpired = function () {
-  const archiveDuration = 30 * 24 * 60 * 60 * 1000;
-  return this.createdAt.getTime() + archiveDuration < Date.now();
-};
 
 // Virtual to get total units
 courseSchema.virtual("totalUnits").get(function () {
