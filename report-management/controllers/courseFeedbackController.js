@@ -12,6 +12,7 @@ const courseFeedbackValidationSchema = Joi.object({
 // Create new feedback
 const createFeedback = async (req, res) => {
   try {
+    console.log(req.body);
     const validatedData = await courseFeedbackValidationSchema.validateAsync(req.body);
     const userId = req.user.id; // Assumes authentication middleware sets req.user
     const feedback = new CourseFeedback({ ...validatedData, userId });
