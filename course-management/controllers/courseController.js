@@ -58,16 +58,17 @@ const deleteCourseCascade = async (courseId) => {
 exports.createCourse = async (req, res) => {
   let isCourseCreated = false;
   let courseId = null;
+  const userId = req.user.id;
   try {
     const payload = preparePayload(req);
-    await checkCourseLimit(req.user.id);
+    await checkCourseLimit(userId);
 
     const generatedData = await generateCourseOutline(payload);
     console.log("Generated course outline:", generatedData);
 
-    const newCourse = await initializeCourse(payload, generatedData);
+    const newCourse = await initializeCourse(payload, generatedData, userId);
 
-    await enrollCreator(req.user.id, newCourse._id);
+    await enrollCreator(userId, newCourse._id);
 
     // Send response to the user immediately
     res.status(200).json({
@@ -82,7 +83,7 @@ exports.createCourse = async (req, res) => {
     // Run the remaining tasks in the background without awaiting
     (async () => {
       try {
-        await createCourseAsync(payload, generatedData, newCourse);
+        await createCourseAsync(payload, generatedData, newCourse, userId);
       } catch (error) {
         console.error("Error in background task:", error);
         await deleteCourseCascade(courseId);
@@ -102,28 +103,57 @@ exports.createCourse = async (req, res) => {
  * Controller to get a specific course with visibility checks.
  */
 exports.getCourse = async (req, res) => {
-  const course = req.course;
-  const userId = req.user.id;
-
+  const { courseId } = req.params;
   try {
-    // Check if the course is visible to the user
-    if (!course.isPublic) {
-      const enrollment = await Enrollment.findOne({
-        course: course._id,
-        userId,
-      });
-      if (!enrollment) {
-        return res.status(403).json({ error: "Course is not visible to you." });
-      }
-    }
+    //.populate({
+    //   path: "progress.unitsProgress.unit",
+    // })
+    // .populate({
+    //   path: "progress.unitsProgress.chaptersProgress.chapter",
+    // })
+    // .populate({
+    //   path: "progress.unitsProgress.chaptersProgress.quizProgress",
+    // })
+    // .populate({
+    //   path: "progress.unitsProgress.ass.assignmentProgress",
+    // })
+    const courseProgress = await Enrollment.findOne({
+      course: courseId,
+      userId: req.user.id,
+    })
+      .populate({
+        path: "course",
+        populate: {
+          path: "units",
+          populate: [
+            { path: "chapters" },
+            { path: "assignment" },
+            { path: "quiz", populate: { path: "questions" } },
+          ],
+        },
+      })
+      .populate({
+        path: "progress.unitsProgress.chaptersProgress",
+      })
+      .populate({
+        path: "progress.unitsProgress.assignmentProgress",
+      })
+      .populate({
+        path: "progress.unitsProgress.quizProgress",
+      })
+      .lean();
 
-    return res.json(course);
+    if (!courseProgress) {
+      return res
+        .status(404)
+        .json({ error: "You are not enrolled in this course." });
+    }
+    return res.json(courseProgress);
   } catch (error) {
     console.error("Error in getCourse:", error);
     return res.status(500).json({ error: "Internal server error." });
   }
 };
-
 /**
  * Controller to delete a course.
  */
@@ -150,20 +180,65 @@ exports.deleteCourse = async (req, res) => {
  * Controller to archive a course.
  */
 exports.archiveCourse = async (req, res) => {
-  const course = req.course;
-
+  const { courseId } = req.params;
   try {
-    if (course.isArchived) {
-      return res.status(400).json({ error: "Course is already archived." });
+    // it's in enrolment
+    const enrollment = await Enrollment.findOne({
+      course: courseId,
+      userId: req.user.id,
+    });
+    if (!enrollment) {
+      return res
+        .status(403)
+        .json({ error: "You are not enrolled in this course." });
     }
 
-    course.isArchived = true;
-    course.archivedAt = new Date();
-    await course.save();
+    // Check if the course is already archived
+    if (enrollment.isArchived) {
+      return res.json({ message: "Course is already archived." });
+    }
 
-    // Optionally, handle additional archival logic here (e.g., notifying users)
+    // Archive the course
+    enrollment.isArchived = true;
+    enrollment.archivedAt = new Date();
+    await enrollment.save();
 
     return res.json({ message: "Course archived successfully." });
+  } catch (error) {
+    console.error("Error in archiveCourse:", error);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+};
+
+/**
+ * Controller to unarchive a course.
+ */
+exports.unarchiveCourse = async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    // it's in enrolment
+    const enrollment = await Enrollment.findOne({
+      course: courseId,
+      userId: req.user.id,
+    });
+    if (!enrollment) {
+      return res
+        .status(403)
+        .json({ error: "You are not enrolled in this course." });
+    }
+
+    // Check if the course is already archived
+    if (!enrollment.isArchived) {
+      return res.json({ message: "Course is not archived." });
+    }
+
+    // Archive the course
+    enrollment.isArchived = false;
+    enrollment.archivedAt = null;
+    await enrollment.save();
+
+    return res.json({ message: "Course restored successfully." });
   } catch (error) {
     console.error("Error in archiveCourse:", error);
     return res.status(500).json({ error: "Internal server error." });
@@ -276,7 +351,7 @@ exports.getMyCourses = async (req, res) => {
  * Controller to get all courses the authenticated user is enrolled in (Feed).
  * Returns summarized fields: id, difficulty, title, number of units, number of quizzes, number of assignments, number of participants, category, subcategory
  */
-exports.getMyEnrolledCourses = async (req, res) => {
+exports.getMyInProgressCourses = async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -376,7 +451,11 @@ exports.getMyEnrolledCourses = async (req, res) => {
       },
     ]);
 
-    return res.json(courses);
+    const filteredInProgressCourses = courses.filter(
+      (course) => course.overallProgress < 100
+    );
+
+    return res.json(filteredInProgressCourses);
   } catch (error) {
     console.error("Error in getMyEnrolledCourses:", error);
     return res.status(500).json({ error: "Internal server error." });
@@ -389,40 +468,24 @@ exports.getMyEnrolledCourses = async (req, res) => {
  */
 exports.getRecommendations = async (req, res) => {
   try {
+    // except the user's courses
     const userId = req.user.id;
-
-    // Fetch courses the user is already enrolled in
-    const enrolledCourses = await Enrollment.find({ userId, isArchived: false })
-      .select("course")
-      .lean();
+    const enrolledCourses = await Enrollment.find({ userId }).select("course");
     const enrolledCourseIds = enrolledCourses.map(
       (enrollment) => enrollment.course
     );
-
-    // Fetch top 5 public courses not enrolled by the user
     const recommendations = await Course.aggregate([
       {
-        $match: {
-          isPublic: true,
-          _id: { $nin: enrolledCourseIds },
-        },
-      },
-      {
-        $lookup: {
-          from: "enrollments",
-          localField: "_id",
-          foreignField: "course",
-          as: "enrollments",
-        },
+        $match: { isPublic: true, _id: { $nin: enrolledCourseIds } },
       },
       {
         $addFields: {
-          numberOfUnits: { $size: "$units" },
-          numberOfParticipants: { $size: { $ifNull: ["$enrollments", []] } },
+          numberOfParticipants: { $size: { $ifNull: ["$participants", []] } },
+          numberOfUnits: { $size: { $ifNull: ["$units", []] } },
           numberOfQuizzes: {
             $sum: {
               $map: {
-                input: "$units",
+                input: { $ifNull: ["$units", []] },
                 as: "unit",
                 in: { $cond: [{ $ifNull: ["$$unit.quiz", false] }, 1, 0] },
               },
@@ -431,7 +494,7 @@ exports.getRecommendations = async (req, res) => {
           numberOfAssignments: {
             $sum: {
               $map: {
-                input: "$units",
+                input: { $ifNull: ["$units", []] },
                 as: "unit",
                 in: {
                   $cond: [{ $ifNull: ["$$unit.assignment", false] }, 1, 0],
@@ -455,10 +518,10 @@ exports.getRecommendations = async (req, res) => {
         },
       },
       {
-        $sort: { createdAt: -1 }, // Sort by most recently created courses
+        $sort: { numberOfParticipants: -1 }, // Sort by most participants (descending)
       },
       {
-        $limit: 5, // Limit to top 5 recommendations
+        $limit: 5, // Get top 5 courses
       },
     ]);
 
@@ -468,7 +531,6 @@ exports.getRecommendations = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
-
 /**
  * Controller to get participants of a specific course.
  * Returns an array of userIds enrolled in the course.
@@ -505,9 +567,24 @@ exports.getMyArchivedCourses = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Find all archived courses created by the user in enrollment
+    const archivedEnrollments = await Enrollment.find({
+      userId,
+      isArchived: true,
+    }).select("course");
+
+    const archivedCourseIds = archivedEnrollments.map(
+      (enrollment) => enrollment.course._id
+    );
+    const enrollmentData = archivedEnrollments.map((enrollment) => ({
+      courseId: enrollment.course._id,
+      progress: enrollment.progress,
+    }));
+
+    // Fetch summarized data for archived courses
     const archivedCourses = await Course.aggregate([
       {
-        $match: { creatorId: userId, isArchived: true },
+        $match: { _id: { $in: archivedCourseIds } },
       },
       {
         $lookup: {
@@ -518,37 +595,53 @@ exports.getMyArchivedCourses = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "units",
+          localField: "_id",
+          foreignField: "course",
+          as: "units",
+        },
+      },
+      {
         $addFields: {
           numberOfUnits: { $size: "$units" },
           numberOfParticipants: { $size: { $ifNull: ["$enrollments", []] } },
           numberOfQuizzes: {
-            $sum: {
-              $map: {
+            $size: {
+              $filter: {
                 input: "$units",
                 as: "unit",
-                in: {
-                  $cond: [
-                    { $ifNull: ["$$unit.quizzes", false] },
-                    { $size: "$$unit.quizzes" },
-                    0,
-                  ],
-                },
+                cond: { $gt: [{ $type: "$$unit.quiz" }, "missing"] },
               },
             },
           },
           numberOfAssignments: {
-            $sum: {
-              $map: {
+            $size: {
+              $filter: {
                 input: "$units",
                 as: "unit",
-                in: {
-                  $cond: [
-                    { $ifNull: ["$$unit.assignments", false] },
-                    { $size: "$$unit.assignments" },
+                cond: { $gt: [{ $type: "$$unit.assignment" }, "missing"] },
+              },
+            },
+          },
+          // Attach overall progress based on enrollment data
+          overallProgress: {
+            $let: {
+              vars: {
+                enrollment: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: enrollmentData,
+                        as: "enroll",
+                        cond: { $eq: ["$$enroll.courseId", "$_id"] },
+                      },
+                    },
                     0,
                   ],
                 },
               },
+              in: { $ifNull: ["$$enrollment.progress.overallProgress", 0] },
             },
           },
         },
@@ -556,7 +649,6 @@ exports.getMyArchivedCourses = async (req, res) => {
       {
         $project: {
           _id: 1,
-          title: 1,
           difficulty: 1,
           category: 1,
           subcategory: 1,
@@ -564,7 +656,8 @@ exports.getMyArchivedCourses = async (req, res) => {
           numberOfQuizzes: 1,
           numberOfAssignments: 1,
           numberOfParticipants: 1,
-          createdAt: 1,
+          title: 1,
+          overallProgress: 1,
         },
       },
     ]);

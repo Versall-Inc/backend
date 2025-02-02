@@ -242,14 +242,14 @@ services:
       timeout: 10s
       retries: 3
     restart: always
- # -------------------------------------------------------------------
+  # -------------------------------------------------------------------
   #                      USER EMAIL SERVICE
   # -------------------------------------------------------------------
   user-email-service:
     build:
       context: ./user-email-service
     ports:
-      - "5010:5010"  
+      - "5010:5010"
     networks:
       - intelligence-network
     environment:

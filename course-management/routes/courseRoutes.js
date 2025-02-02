@@ -23,6 +23,13 @@ router.put(
   courseController.archiveCourse
 );
 
+// UNARCHIVE
+router.put(
+  "/update/:courseId/unarchive",
+  checkArchiveExpiration,
+  courseController.unarchiveCourse
+);
+
 // PUSH
 router.put(
   "/push-deadline/:courseId",
@@ -43,7 +50,7 @@ router.get(
 router.get("/mine", courseController.getMyCourses);
 
 // get all courses for a user feed(Courses that are enrolled by the user)
-router.get("/feed", courseController.getMyEnrolledCourses);
+router.get("/feed", courseController.getMyInProgressCourses);
 
 // get recommendations for a user
 router.get("/recommendations", courseController.getRecommendations);

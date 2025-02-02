@@ -8,10 +8,6 @@ const chapterSchema = new mongoose.Schema(
     youtubeLink: {
       type: String,
       trim: true,
-      match: [
-        /^(https?\:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/,
-        "Please enter a valid YouTube URL",
-      ],
     },
     content: { type: String },
     title: {

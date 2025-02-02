@@ -1,6 +1,19 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
+const interests = [
+  "Technology",
+  "Design",
+  "Biology",
+  "Mathematics",
+  "Culinary",
+  "History",
+  "Literature",
+  "Marketing",
+  "Time Management",
+  "Other",
+];
+
 const User = sequelize.define(
   "User",
   {
@@ -92,6 +105,14 @@ const User = sequelize.define(
     },
     url_website: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    interests: {
+      type: DataTypes.ARRAY(DataTypes.ENUM(interests)),
+      allowNull: true,
+    },
+    specialities: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: true,
     },
   },

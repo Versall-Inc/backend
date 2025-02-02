@@ -139,6 +139,7 @@ class UnitSchema(BaseModel):
     chapters: List[ChapterSchema] = Field(..., description="List of up to N chapters (ChapterSchema items)")
     quiz: Optional[QuizSchema] = Field(None, description="Optional quiz for this unit")
     assignment: Optional[AssignmentSchema] = Field(None, description="Optional assignment for this unit")
+    youtube_link: Optional[str] = Field(None, description="Link to a YouTube video for the unit")
 
 # ---------------------------------
 # COURSE SKELETON SCHEMA

@@ -2,12 +2,12 @@
 const Joi = require("joi");
 
 exports.createCourseSchema = Joi.object({
-  is_public: Joi.boolean().optional(),
-  users_can_moderate: Joi.boolean().optional(),
-  material_types: Joi.array()
+  isPublic: Joi.boolean().optional(),
+  usersCanModerate: Joi.boolean().optional(),
+  materialTypes: Joi.array()
     .items(Joi.string().valid("reading", "video"))
     .required(),
-  assignment_types: Joi.array()
+  assignmentTypes: Joi.array()
     .items(Joi.string().valid("writing", "presentation", "quiz"))
     .required(),
   title: Joi.string().optional(),
@@ -18,5 +18,5 @@ exports.createCourseSchema = Joi.object({
   difficulty: Joi.string()
     .valid("beginner", "intermediate", "advanced")
     .required(),
-  course_objectives: Joi.string().optional(),
+  courseObjectives: Joi.string().optional(),
 });

@@ -10,17 +10,46 @@ exports.enrollUser = async (req, res) => {
   }
 
   try {
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).populate("units");
     if (!course) {
       return res.status(404).json({ error: "Course not found." });
     }
-    const existing = await Enrollment.findOne({ userId, courseId });
+    const existing = await Enrollment.findOne({ userId, course: courseId });
     if (existing) {
       return res.status(400).json({ error: "User already enrolled." });
     }
-    const enrollment = new Enrollment({ userId, courseId });
-    await enrollment.save();
 
+    const enrollment = new Enrollment({ userId, course: courseId });
+    // Initialize progress tracking
+    enrollment.progress.unitsProgress = [];
+    for (const unit of course.units) {
+      const unitProgress = {
+        unit: unit._id,
+        completed: false,
+        chaptersProgress: unit.chapters.map((chapter) => ({
+          chapter: chapter._id,
+          completed: false,
+        })),
+        assignmentProgress: {
+          assignment: unit.assignment,
+          submitted: false,
+          submissionDate: null,
+          grad: null,
+          feedback: null,
+        },
+        quizProgress: {
+          quiz: unit.quiz,
+          completed: false,
+          score: null,
+          attempts: 0,
+          lastAttempted: null,
+        },
+      };
+
+      enrollment.progress.unitsProgress.push(unitProgress);
+    }
+
+    await enrollment.save();
     course.participants.push(userId);
     await course.save();
 

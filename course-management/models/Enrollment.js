@@ -11,7 +11,6 @@ const chapterProgressSchema = new mongoose.Schema(
       required: true,
     },
     completed: { type: Boolean, default: false },
-    progressDetails: { type: String },
   },
   { _id: false }
 );
@@ -47,8 +46,8 @@ const unitProgressSchema = new mongoose.Schema(
     unit: { type: mongoose.Schema.Types.ObjectId, ref: "Unit", required: true },
     completed: { type: Boolean, default: false },
     chaptersProgress: [chapterProgressSchema],
-    assignmentsProgress: [assignmentProgressSchema],
-    quizzesProgress: [quizProgressSchema],
+    assignmentProgress: assignmentProgressSchema,
+    quizProgress: quizProgressSchema,
   },
   { _id: false }
 );
