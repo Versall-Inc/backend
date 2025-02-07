@@ -8,6 +8,7 @@ const Question = require("../models/Question");
 const Assignment = require("../models/Assignment");
 const asyncLib = require("async"); // Import the async library
 const Enrollment = require("../models/Enrollment");
+const { ASSIGNMENT_TYPES, MATERIAL_TYPES } = require("../constants");
 
 async function generateUnitContent(payload) {
   const generatorUrl = "http://course-generation:4004/generate-unit-content";
@@ -19,8 +20,8 @@ async function generateUnitContent(payload) {
     unit: payload.unit,
     prompt: payload.prompt,
     difficulty: payload.difficulty,
-    material_types: payload.material_types,
-    assignment_types: payload.assignment_types,
+    material_types: MATERIAL_TYPES,
+    assignment_types: ASSIGNMENT_TYPES,
   });
   return unit;
 }
@@ -37,8 +38,8 @@ async function generateCourseOutline(payload) {
     category: payload.category,
     subcategory: payload.subcategory,
     difficulty: payload.difficulty,
-    material_types: payload.materialTypes,
-    assignment_types: payload.assignmentTypes,
+    material_types: MATERIAL_TYPES,
+    assignment_types: ASSIGNMENT_TYPES,
   });
   return response.data;
 }
@@ -107,8 +108,8 @@ const initializeCourse = async (payload, generatedData, userId) => {
     creatorId: payload.creatorId,
     isPublic: Boolean(payload.isPublic || true),
     usersCanModerate: Boolean(payload.usersCanModerate),
-    materialTypes: payload.materialTypes, // Array of strings
-    assignmentTypes: payload.assignmentTypes, // Array of strings
+    materialTypes: payload.materialTypes,
+    assignmentTypes: payload.assignmentTypes,
     title: generatedData.title,
     overview: generatedData.overview,
     prompt: payload.prompt,
@@ -196,7 +197,7 @@ const initializeQueue = (newCourse, payload, generatedData, userId) => {
         console.error(`Error processing unit "${unitData.title}":`, err);
         callback(err); // Pass the error to the queue
       });
-  }, 3); // Set concurrency limit to 3
+  }, 1); // Set concurrency limit to 3
 
   return q;
 };
@@ -209,8 +210,6 @@ const processUnit = async (unitData, payload, generatedData, courseId) => {
   let generatedUnit = await generateUnitContent({
     ...generatedData,
     ...payload,
-    material_types: payload.materialTypes,
-    assignment_types: payload.assignmentTypes,
     unit: unitData,
   });
   generatedUnit = generatedUnit.data;

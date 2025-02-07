@@ -6,7 +6,6 @@ const quizSubmissionController = require("../controllers/quizSubmissionControlle
 // Submit quiz (create submission in "in_progress" or "submitted" state)
 router.post("/", quizSubmissionController.submitQuiz);
 
-// Finalize quiz submission (evaluate it)
-router.post("/finalize/:submissionId", quizSubmissionController.finalizeQuiz);
+router.get("/get/:courseId/:quizId", quizSubmissionController.getQuiz);
 
 module.exports = router;

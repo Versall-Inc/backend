@@ -1,12 +1,13 @@
 // models/Question.js
 const mongoose = require("mongoose");
+const { QUESTION_TYPES } = require("../constants");
 
 const questionSchema = new mongoose.Schema(
   {
     quiz: { type: mongoose.Schema.Types.ObjectId, ref: "Quiz", required: true },
     type: {
       type: String,
-      enum: ["multiple_choice", "true_false", "short_answer", "essay"],
+      enum: QUESTION_TYPES,
       required: true,
     },
     questionText: {
@@ -55,7 +56,6 @@ questionSchema.pre("validate", function (next) {
       );
     }
   }
-  // For short_answer and essay, correctAnswer is not required
   next();
 });
 

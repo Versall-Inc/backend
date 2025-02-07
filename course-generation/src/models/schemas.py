@@ -85,7 +85,7 @@ class Question(BaseModel):
     """
     Represents a single question in a quiz or assignment.
     """
-    type: str = Field(..., description="Question type, e.g. multiple_choice, true_false, short_answer, essay")
+    type: str = Field(..., description="Question type, e.g. multiple_choice, true_false")
     question: str = Field(..., description="The question text")
     options: List[str] = Field(..., description="Possible answer options (e.g. for multiple_choice)")
     correct_answer: int = Field(..., description="Index of the correct option, or 0/1 for true_false")
@@ -123,10 +123,8 @@ class ChapterSchema(BaseModel):
     """
     title: str = Field(..., description="Title of this chapter")
     content: str = Field(..., description="Textual content or summary for this chapter")
-    youtube_query: Optional[str] = Field(
-        None, 
-        description="Used if 'video' is in material_types, to help find relevant YouTube content"
-    )
+    youtube_link: Optional[str] = Field(None, description="Link to a YouTube video for the unit")
+    youtube_query: Optional[str] = Field(None, description="To help find relevant YouTube content")
 
 # ---------------------------------
 # UNIT SCHEMA
@@ -138,8 +136,6 @@ class UnitSchema(BaseModel):
     title: str = Field(..., description="Title of this unit")
     chapters: List[ChapterSchema] = Field(..., description="List of up to N chapters (ChapterSchema items)")
     quiz: Optional[QuizSchema] = Field(None, description="Optional quiz for this unit")
-    assignment: Optional[AssignmentSchema] = Field(None, description="Optional assignment for this unit")
-    youtube_link: Optional[str] = Field(None, description="Link to a YouTube video for the unit")
 
 # ---------------------------------
 # COURSE SKELETON SCHEMA
@@ -151,8 +147,9 @@ class CourseSkeletonSchema(BaseModel):
     """
     title: str = Field(..., description="Course title")
     overview: str = Field(..., description="Short overview of the course")
-    total_units: int = Field(..., description="How many units to create")
     max_chapters_per_unit: int = Field(..., description="Maximum number of chapters per unit")
+    total_units: int = Field(..., description="How many units to create")
+    
 
 # ---------------------------------
 # FINAL COURSE SCHEMA

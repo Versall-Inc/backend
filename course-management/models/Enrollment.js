@@ -35,7 +35,7 @@ const quizProgressSchema = new mongoose.Schema(
     quiz: { type: mongoose.Schema.Types.ObjectId, ref: "Quiz", required: true },
     completed: { type: Boolean, default: false },
     score: { type: Number, min: 0 },
-    attempts: { type: Number, default: 0, min: 0 },
+    attempts: { type: Number, default: 0, min: 0, max: 1 },
     lastAttempted: { type: Date },
   },
   { _id: false }
@@ -88,7 +88,7 @@ enrollmentSchema.methods.calculateOverallProgress = function () {
   let completedItems = 0;
 
   unitsProgress.forEach((unit) => {
-    // Chapters
+    // Chapters Progress
     if (unit.chaptersProgress.length > 0) {
       totalItems += unit.chaptersProgress.length;
       completedItems += unit.chaptersProgress.filter(
@@ -96,30 +96,24 @@ enrollmentSchema.methods.calculateOverallProgress = function () {
       ).length;
     }
 
-    // Assignments
-    if (unit.assignmentsProgress.length > 0) {
-      totalItems += unit.assignmentsProgress.length;
-      completedItems += unit.assignmentsProgress.filter(
-        (asn) => asn.submitted
-      ).length;
+    // Assignment Progress
+    if (unit.assignmentProgress) {
+      totalItems += 1;
+      if (unit.assignmentProgress.submitted) completedItems += 1;
     }
 
-    // Quizzes
-    if (unit.quizzesProgress.length > 0) {
-      totalItems += unit.quizzesProgress.length;
-      completedItems += unit.quizzesProgress.filter(
-        (qz) => qz.completed
-      ).length;
+    // Quiz Progress
+    if (unit.quizProgress) {
+      totalItems += 1;
+      if (unit.quizProgress.completed) completedItems += 1;
     }
   });
 
-  if (totalItems === 0) {
-    this.progress.overallProgress = 0;
-  } else {
-    const progress = (completedItems / totalItems) * 100;
-    this.progress.overallProgress = Math.min(progress, 100);
-  }
+  // Avoid division by zero
+  this.progress.overallProgress =
+    totalItems === 0 ? 0 : Math.min((completedItems / totalItems) * 100, 100);
 
+  // Set completion timestamp
   if (this.progress.overallProgress === 100 && !this.progress.completedAt) {
     this.progress.completedAt = new Date();
   } else if (this.progress.overallProgress < 100 && this.progress.completedAt) {

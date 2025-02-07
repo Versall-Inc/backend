@@ -36,7 +36,7 @@ async def strict_output(
     user_prompts: str,
     output_format: BaseModel,
     api_key: str,
-    model: str = "gpt-4o-2024-08-06",
+    model: str = os.getenv("GPT_MODEL"),
     temperature: float = 1.0
 ) -> Dict[str, Any]:
     """
@@ -232,6 +232,7 @@ Output (title, content, optional youtube_query).
 
         chap_user_prompt = f"""
 We have a unit titled "{unit_title}" in a {difficulty} difficulty course on "{prompt}".
+{'' if c_idx == 0 else 'Previous chapters:' + ', '.join(str(i + 1) + "." + c['title'] for i, c in enumerate(chapters))}.
 Chapter #{c_idx+1} out of {num_chapters}.
 The user wants:
 - a `title` (string),
@@ -279,12 +280,13 @@ No quiz or assignment here. Return exactly one chapter object.
         assignment: Optional[AssignmentSchema] = None
 
     quiz_assign_system_prompt = """You are an expert course creator.
-The user wants optional quiz/assignment for a single unit. 
+The user wants optional quiz/assignment for a single unit based on the Unit title and Chapters provided.
 No chapter info here, just quiz or assignment or both.
 """
 
     quiz_assign_user_prompt = f"""
 Unit title: {unit_title}.
+Chapters: {", ".join(str(i + 1) + "." + c['title'] for i, c in enumerate(chapters))}.
 Assignment types allowed: {assignment_types}.
 If there's no quiz or assignment, return them as None.
 No reading or video assigned as assignment_type.

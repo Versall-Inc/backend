@@ -1,15 +1,14 @@
 // models/Course.js
 const mongoose = require("mongoose");
+const { MATERIAL_TYPES, ASSIGNMENT_TYPES } = require("../constants");
 
 const courseSchema = new mongoose.Schema(
   {
     isPublic: { type: Boolean, default: true },
     creatorId: { type: String, required: true }, // Changed from ObjectId to String
     usersCanModerate: { type: Boolean, default: false },
-    materialTypes: [{ type: String, enum: ["reading", "video"] }],
-    assignmentTypes: [
-      { type: String, enum: ["writing", "presentation", "quiz"] },
-    ],
+    materialTypes: [{ type: String, enum: MATERIAL_TYPES, required: true }],
+    assignmentTypes: [{ type: String, enum: ASSIGNMENT_TYPES, required: true }],
     title: {
       type: String,
       required: true,

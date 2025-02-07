@@ -79,8 +79,7 @@ class AssessmentGenerator:
         
         try:
             question_types = (
-                ['multiple_choice', 'true_false'] if assessment_type == 'quiz'
-                else ['short_answer', 'essay']
+                ['multiple_choice', 'true_false']
             )
             
             prompt = f"""
@@ -99,7 +98,7 @@ class AssessmentGenerator:
                 output_format={
                     "questions": [
                         {
-                            "type": "string (multiple_choice/true_false/short_answer/essay)",
+                            "type": "string (multiple_choice/true_false)",
                             "question": "string",
                             "options": ["string"],
                             "correct_answer": "string or index",
@@ -149,8 +148,6 @@ class AssessmentGenerator:
                 base_points = {
                     'multiple_choice': 2,
                     'true_false': 1,
-                    'short_answer': 5,
-                    'essay': 10
                 }.get(processed_q['type'], 2)
                 
                 # Apply difficulty multiplier

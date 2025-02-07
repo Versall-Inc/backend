@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
 const AssignmentSubmission = require("../models/AssignmentSubmission");
-const QuizSubmission = require("../models/QuizSubmission");
 const {
   generateCourseOutline,
   createCourseAsync,
@@ -38,9 +37,6 @@ const deleteCourseCascade = async (courseId) => {
       }
     }
     await AssignmentSubmission.deleteMany({ courseId });
-
-    // 2. Delete Quiz Submissions
-    await QuizSubmission.deleteMany({ courseId });
 
     // 3. Delete Enrollments (which include embedded CourseProgress)
     await Enrollment.deleteMany({ course: courseId });
@@ -105,18 +101,6 @@ exports.createCourse = async (req, res) => {
 exports.getCourse = async (req, res) => {
   const { courseId } = req.params;
   try {
-    //.populate({
-    //   path: "progress.unitsProgress.unit",
-    // })
-    // .populate({
-    //   path: "progress.unitsProgress.chaptersProgress.chapter",
-    // })
-    // .populate({
-    //   path: "progress.unitsProgress.chaptersProgress.quizProgress",
-    // })
-    // .populate({
-    //   path: "progress.unitsProgress.ass.assignmentProgress",
-    // })
     const courseProgress = await Enrollment.findOne({
       course: courseId,
       userId: req.user.id,
@@ -128,7 +112,7 @@ exports.getCourse = async (req, res) => {
           populate: [
             { path: "chapters" },
             { path: "assignment" },
-            { path: "quiz", populate: { path: "questions" } },
+            { path: "quiz" },
           ],
         },
       })

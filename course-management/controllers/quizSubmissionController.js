@@ -1,91 +1,112 @@
 // controllers/quizSubmissionController.js
-const QuizSubmission = require("../models/QuizSubmission");
 const Enrollment = require("../models/Enrollment");
 const Course = require("../models/Course");
-
-// Evaluate user answers vs the course's quiz questions
-async function evaluateQuiz(submission) {
-  const course = await Course.findById(submission.courseId);
-  if (!course) throw new Error("Course not found.");
-
-  const unit = course.units.id(submission.unitId);
-  if (!unit) throw new Error("Unit not found.");
-
-  // We'll assume there's only one quiz in the unit, or we check quizId
-  const quiz = unit.quiz;
-  if (!quiz) throw new Error("No quiz found in this unit.");
-
-  // Build a map from questionId => question data
-  const questionMap = new Map(quiz.questions.map((q) => [q._id.toString(), q]));
-
-  let totalScore = 0;
-  submission.answers.forEach((answer) => {
-    const q = questionMap.get(answer.questionId.toString());
-    if (!q) return;
-    if (answer.selectedAnswer === q.correct_answer) {
-      answer.correct = true;
-      answer.pointsEarned = q.points || 1;
-      totalScore += answer.pointsEarned;
-    } else {
-      answer.correct = false;
-      answer.pointsEarned = 0;
-    }
-  });
-
-  submission.totalScore = totalScore;
-  submission.status = "graded";
-  submission.submittedAt = new Date();
-  await submission.save();
-  return submission;
-}
+const Quiz = require("../models/Quiz");
 
 exports.submitQuiz = async (req, res) => {
   try {
     // body: { courseId, unitId, quizId, answers: [{ questionId, selectedAnswer }, ...] }
-    const { courseId, unitId, quizId, answers } = req.body;
+    const { courseId, quizId, answers } = req.body;
     const userId = req.user.id;
 
     // Check enrollment
-    const enrollment = await Enrollment.findOne({ userId, courseId });
+    const enrollment = await Enrollment.findOne({
+      userId,
+      course: courseId,
+    }).populate({
+      path: "progress.unitsProgress.quizProgress",
+    });
+
     if (!enrollment) {
       return res
         .status(403)
         .json({ error: "User not enrolled in this course." });
     }
+    // Check quiz
+    const quiz = await Quiz.findById(quizId).populate("questions").lean();
+    if (!quiz) {
+      return res.status(404).json({ error: "Quiz not found." });
+    }
 
-    // Create a new quiz submission (in_progress)
-    const submission = new QuizSubmission({
-      userId,
-      courseId,
-      unitId,
-      quizId,
-      answers: answers || [],
-      status: "in_progress",
-    });
-    await submission.save();
+    // find the quizProgress and update the score, completed, lastAttempted, and attempts.
+    const unitProgress = enrollment.progress.unitsProgress.find(
+      (unit) => unit.quizProgress.quiz.toString() === quizId
+    );
+    if (unitProgress && unitProgress.quizProgress.completed) {
+      return res.status(400).json({ error: "Quiz already completed." });
+    }
+    if (!unitProgress) {
+      return res.status(404).json({ error: "Quiz progress not found." });
+    }
 
-    return res
-      .status(201)
-      .json({ message: "Quiz submission created. Continue or finalize." });
+    // already completed
+    let points = 0;
+    let correctAnswers = [];
+    let totalPoints = 0;
+
+    for (const answer of answers) {
+      const question = quiz.questions.find(
+        (q) => q._id.toString() === answer.questionId
+      );
+      if (!question) {
+        return res.status(400).json({ error: "Invalid question ID." });
+      }
+      totalPoints += question.points;
+      if (answer.selectedAnswer === question.correctAnswer) {
+        points += question.points;
+      }
+      correctAnswers.push({
+        questionId: question._id,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+      });
+    }
+
+    unitProgress.quizProgress.completed = true;
+    unitProgress.quizProgress.lastAttempted = new Date();
+    unitProgress.quizProgress.attempts += 1;
+    let score = totalPoints == 0 ? 0 : (points / totalPoints) * 100;
+    unitProgress.quizProgress.score = score;
+
+    enrollment.calculateOverallProgress();
+    // save the enrollment with the new unitProgress
+    await enrollment.save();
+    return res.json({ score, correctAnswers });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
 
-// We finalize the quiz (grade it) in a separate route, or you can do it in one step
-exports.finalizeQuiz = async (req, res) => {
+exports.getQuiz = async (req, res) => {
   try {
-    const { submissionId } = req.params;
-    const submission = await QuizSubmission.findById(submissionId);
-    if (!submission) {
-      return res.status(404).json({ error: "Submission not found." });
+    const { courseId, quizId } = req.params;
+    const userId = req.user.id;
+
+    const enrollment = await Enrollment.findOne({
+      userId,
+      course: courseId,
+    }).lean();
+    // not enrolled
+    if (!enrollment) {
+      return res
+        .status(403)
+        .json({ error: "User not enrolled in this course." });
     }
-    if (submission.status === "graded") {
-      return res.status(400).json({ error: "Submission already graded." });
+    const quiz = await Quiz.findById(quizId).populate("questions").lean();
+    const unitProgress = enrollment.progress.unitsProgress.find(
+      (unit) => unit.quizProgress.quiz.toString() === quizId
+    );
+    const quizProgress = unitProgress.quizProgress;
+    // if quiz not found
+    if (!quiz) {
+      return res.status(404).json({ error: "Quiz not found." });
     }
-    // Evaluate
-    const graded = await evaluateQuiz(submission);
-    return res.json({ message: "Quiz graded.", graded });
+    // hide correct answers
+    quiz.questions.forEach((q) => {
+      q.correctAnswer = undefined;
+      q.explanation = undefined;
+    });
+    return res.json({ quiz, quizProgress });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

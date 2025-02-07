@@ -36,6 +36,7 @@ exports.register = async (req, res) => {
     "jessicaaveryblack@gmail.com",
     "jgoss@ocadu.ca",
     "helsaa@ocadu.ca",
+    "asow@mastercardfdn.org",
   ];
 
   if (!whiteListEmails.includes(email.toString().toLowerCase())) {

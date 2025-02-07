@@ -37,6 +37,7 @@ exports.toggleChapterComplete = async (req, res) => {
     if (!changed) {
       return res.status(404).json({ message: "Chapter not found" });
     }
+    courseProgress.calculateOverallProgress();
 
     await courseProgress.save();
     return res.json(courseProgress);
