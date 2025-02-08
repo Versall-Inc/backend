@@ -32,6 +32,10 @@ router.get(
 );
 
 // POST assignment submission
-router.post("/submit/:courseId/:assignmentId", selectMulter, assignmentSubmissionController.submitAssignment);
+router.post(
+  "/submit/:courseId/:assignmentId",
+  selectMulter,
+  assignmentSubmissionController.submitAssignment
+);
 
 module.exports = router;

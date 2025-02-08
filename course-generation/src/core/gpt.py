@@ -18,6 +18,8 @@ from src.models.schemas import (
 from src.utils.textExtractors import extract_content_from_file
 import os
 from fastapi import UploadFile
+from youtube_search import YoutubeSearch
+
 
 
 # Configure logging
@@ -360,24 +362,11 @@ async def grade_writing_assignment(
 # YOUTUBE SEARCH
 # ---------------------------
 async def search_youtube(search_query):
-    api_key = os.getenv("GOOGLE_API_KEY")
-    url = f"https://www.googleapis.com/youtube/v3/search?key={api_key}&q={search_query}&videoEmbeddable=true&type=video&maxResults=5"
-    
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                print("YouTube API request failed")
-                return None
-            data = await response.json()
-    
-    print(data)
-    if not data or "items" not in data or not data["items"]:
-        print("YouTube API returned no results")
-        return None
-    
-    for item in data["items"]:
-        video_id = item["id"].get("videoId")
-        if video_id:
-            return video_id
-    
-    return ""
+    loop = asyncio.get_event_loop()
+    results = await loop.run_in_executor(None, lambda: YoutubeSearch(search_query, max_results=1).to_dict())
+
+    if not results:
+        print("YouTube search returned no results")
+        return ""
+
+    return results[0]["id"]
