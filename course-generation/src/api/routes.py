@@ -1,20 +1,20 @@
 # File: src/api/routes.py
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
-
+import asyncio
 
 from typing import Dict, Any
 from datetime import datetime
 from src.models.schemas import (
     CoursePromptRequest,
-    GeneratedCourseSchema,
     AssessmentRequest,
-    GradingResponse,
     UnitPromptRequest,
     CourseMetadataSchema,
-    CompleteUnitSchema
+    CompleteUnitSchema,
+    GradingResultSchema,
+    WritingAssessmentRequest
 )
-from src.core.gpt import generate_course_metadata, generate_unit_content
+from src.core.gpt import generate_course_metadata, generate_unit_content, grade_writing_assignment
 from src.services.assessment import AssessmentGenerator
 from src.services.grading import GradingService
 from pydantic import ValidationError
@@ -129,10 +129,18 @@ def error_handler(func):
 async def generate_course_outline_endpoint(request: CoursePromptRequest):
     """Generate a course from a prompt"""
     validate_course_request(request.prompt)
-    
+
     try:
         logger.info(f"Generating course for prompt: {request.prompt}")
-        return await generate_course_metadata(request.prompt, request.category, request.subcategory, request.difficulty, request.assignment_types, request.material_types, OPENAI_API_KEY, TEMPERATURE)
+        print('hi')
+        # Run course metadata generation as a background task
+        task = asyncio.create_task(generate_course_metadata(
+            request.prompt, request.category, request.subcategory,
+            request.difficulty, request.assignment_types, request.material_types,
+            OPENAI_API_KEY, TEMPERATURE
+        ))
+
+        return await task  # Await task completion
     except Exception as e:
         logger.error(f"Error generating course: {str(e)}")
         raise HTTPException(
@@ -145,50 +153,52 @@ async def generate_course_outline_endpoint(request: CoursePromptRequest):
 async def generate_unit_content_endpoint(request: UnitPromptRequest):
     """Generate a course from a prompt"""
     validate_course_request(request.prompt)
-    
+
     try:
-        logger.info(f"Generating course for prompt: {request.prompt}")
-        return await generate_unit_content(request.unit, request.prompt, request.difficulty, request.material_types, request.assignment_types, OPENAI_API_KEY, TEMPERATURE)
+        logger.info(f"Generating unit content for prompt: {request.prompt}")
+
+        # Run unit content generation as a background task
+        task = asyncio.create_task(generate_unit_content(
+            request.unit, request.prompt, request.difficulty,
+            request.material_types, request.assignment_types,
+            OPENAI_API_KEY, TEMPERATURE
+        ))
+
+        return await task  # Await task completion
     except Exception as e:
         logger.error(f"Error generating course: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate course: {str(e)}"
         )
-
-
-@router.post("/grade-assessment", response_model=GradingResponse)
-@error_handler
-async def grade_assessment_endpoint(
-    assessment_type: str = Form(..., description="Either 'writing' or 'presentation'"),
-    assignment_overview: str = Form(..., description="Text overview of the assignment"),
-    file: UploadFile = File(..., description="Uploaded file (docx/txt for writing, video for presentation)")
+    
+# Endpoint to grade a writing assignment
+@router.post("/grade-writing-assignment", response_model=GradingResultSchema)
+async def grade_writing_assignment_endpoint(
+    assignment_overview: str = Form(...), 
+    file: UploadFile = File(...)
 ):
     """
-    Grade a submitted assignment based on a file (.docx or .txt if writing).
-    Presentation is not ready yet => return 501.
+    Endpoint to grade a writing assignment by extracting content from the uploaded file,
+    generating feedback, and grading it based on the evaluation.
     """
-    # 1) Check assessment_type
-    if assessment_type not in ("writing", "presentation"):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="assessment_type must be either 'writing' or 'presentation'"
+    # Call the grading function
+    try:
+        # Directly await the grading function instead of creating a task
+        result = await grade_writing_assignment(
+            file=file,
+            assignment_overview=assignment_overview,
+            api_key=OPENAI_API_KEY,
+            temperature=TEMPERATURE
         )
+        return result  # Return the result
 
-    # 2) If "presentation", return 501
-    if assessment_type == "presentation":
+    except Exception as e:
+        logger.error(f"Error generating feedback: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Presentation grading is not ready yet."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate feedback: {str(e)}"
         )
-
-    # 3) Now handle writing    
-    grading_service = GradingService()
-
-    grading_result = await grading_service.grade_writing_assignment(file, assignment_overview)
-
-    # 4) Return result as GradingResponse
-    return GradingResponse(**grading_result)
 
 @router.get("/health")
 async def health_check():

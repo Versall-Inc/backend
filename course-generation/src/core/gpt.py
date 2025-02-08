@@ -1,6 +1,7 @@
 import openai
-import json
+import io
 import aiohttp
+import asyncio
 from urllib.parse import quote
 import logging
 from datetime import datetime
@@ -8,15 +9,15 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from src.models.schemas import (
     CourseSkeletonSchema,
-    GeneratedCourseSchema,
-    UnitSchema,        
     ChapterSchema,      
     QuizSchema,
     AssignmentSchema,
     CourseMetadataSchema,
-    CompleteUnitSchema
+    GradingResultSchema
 )
+from src.utils.textExtractors import extract_content_from_file
 import os
+from fastapi import UploadFile
 
 
 # Configure logging
@@ -30,47 +31,40 @@ logger = logging.getLogger(__name__)
 # ---------------------------
 # STRICT OUTPUT LOGIC
 # ---------------------------
-
 async def strict_output(
     system_prompt: str,
     user_prompts: str,
     output_format: BaseModel,
     api_key: str,
-    model: str = os.getenv("GPT_MODEL"),
+    model: str = os.getenv("GPT_MODEL", "gpt-4"),
     temperature: float = 1.0
 ) -> Dict[str, Any]:
     """
-    Calls a hypothetical 'client.beta.chat.completions.parse' to parse
-    the LLM response directly into a pydantic model (output_format).
+    Calls OpenAI's API asynchronously using asyncio.to_thread to offload
+    the synchronous client execution.
     """
     start_time = datetime.now()
 
-    try:
-        client = openai.Client(api_key=api_key)
+    def call_openai():
+        try:
+            client = openai.Client(api_key=api_key)
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompts}
+                ],
+                response_format=output_format
+            )
+            return completion.choices[0].message.parsed.model_dump()
+        except Exception as e:
+            logger.error(f"Error in strict_output: {str(e)}")
+            return None
 
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompts}
-            ],
-            response_format=output_format
-        )
-        
-        response_data = completion.choices[0].message.parsed.model_dump()
+    response_data = await asyncio.to_thread(call_openai)
 
-        # Add metadata
-        response_data["metadata"] = {
-            "created_at": datetime.now().isoformat(),
-            "prompt": user_prompts,
-            "version": "1.0.0"
-        }
-        return response_data
-
-    except Exception as e:
-        logger.error(f"Error in strict_output: {str(e)}")
-        # Minimal fallback
-        fallback_response = {
+    if response_data is None:
+        response_data = {
             "title": f"{user_prompts.strip().title()} Course",
             "overview": f"Introduction to {user_prompts.strip().title()}",
             "units": [
@@ -88,13 +82,21 @@ async def strict_output(
                 "created_at": datetime.now().isoformat(),
                 "prompt": user_prompts,
                 "version": "1.0.0",
-                "error": str(e)
+                "error": "Failed to fetch data from OpenAI API"
             }
         }
-        return fallback_response
-    finally:
-        duration = datetime.now() - start_time
-        logger.info(f"strict_output completed in {duration}")
+
+    # Add metadata
+    response_data["metadata"] = {
+        "created_at": datetime.now().isoformat(),
+        "prompt": user_prompts,
+        "version": "1.0.0"
+    }
+
+    duration = datetime.now() - start_time
+    logger.info(f"strict_output completed in {duration}")
+
+    return response_data
 
 # ---------------------------
 # COURSE METADATA GENERATION
@@ -149,20 +151,18 @@ Please provide:
     max_chapters_per_unit = max(1, skeleton_data.get("max_chapters_per_unit", 2))
     max_chapters_per_unit = min(5, max_chapters_per_unit)
 
-
     # Define a minimal schema to parse unit information
     class UnitMinimalSchema(BaseModel):
         title: str
         num_chapters: int
 
-    units = []
-    for u_idx in range(total_units):
-        # STEP 2: For each unit, get the UNIT title and number of chapters
-        unit_title_system_prompt = """You are an expert course creator.
+    # STEP 2: Parallelize unit title and chapters generation
+    unit_tasks = [
+        strict_output(
+            system_prompt="""You are an expert course creator.
 The user needs a single unit's title and how many chapters to create (<= max_chapters_per_unit).
-"""
-
-        unit_title_user_prompt = f"""
+""",
+            user_prompts=f"""
 We have a course titled "{skeleton_data['title']}" (overview: {skeleton_data['overview']}).
 This is Unit #{u_idx+1} out of {total_units}, with {difficulty} difficulty.
 
@@ -170,17 +170,16 @@ Return:
 1) title (string): The name of this unit.
 2) num_chapters (int): how many chapters you'll create (1 <= num_chapters <= {max_chapters_per_unit}).
 No quiz or assignment here yet.
-"""
-
-        partial_unit = await strict_output(
-            system_prompt=unit_title_system_prompt,
-            user_prompts=unit_title_user_prompt,
+""",
             output_format=UnitMinimalSchema,
             api_key=api_key,
             temperature=temperature
         )
+        for u_idx in range(total_units)
+    ]
 
-        units.append(partial_unit)
+    # Run all unit generation tasks concurrently
+    units = await asyncio.gather(*unit_tasks)
 
     # Construct the metadata without chapters, quizzes, or assignments
     course_metadata = {
@@ -312,7 +311,54 @@ No reading or video assigned as assignment_type.
     return complete_unit
 
 
+# ---------------------------
+# Writing Assessment Grading
+# ---------------------------
+async def grade_writing_assignment(
+    file: UploadFile,
+    assignment_overview: str,
+    api_key: str,
+    temperature: float
+) -> GradingResultSchema:
+    """
+    Grades a writing assignment by extracting content from the provided file 
+    and using strict_output to provide feedback and grade.
+    """
+    content = await extract_content_from_file(file)
+    
+    feedback_system_prompt = """You are an expert writing evaluator. 
+    Please analyze the following writing assignment and provide feedback on its strengths and areas of improvement. 
+    The feedback should be a string formatted as 'Strengths: [strengths] Improvements: [improvements]'. 
+    """
 
+    feedback_user_prompt = f"""Here is the student's writing assignment:
+    {assignment_overview}
+    And Here is the students writing:
+    {content}
+    Provide feedback on its strengths and areas for improvement.
+    """
+
+    result = await strict_output(
+        system_prompt=feedback_system_prompt,
+        user_prompts=feedback_user_prompt,
+        output_format=GradingResultSchema,
+        api_key=api_key,
+        temperature=temperature
+    )
+
+    try:
+        final_parsed = GradingResultSchema(**result)
+        logger.info("Grading completed.")
+        return final_parsed.dict()
+    except Exception as e:
+        logger.error(f"Error in grade_writing_assignment: {str(e)}")
+        raise
+
+
+
+# ---------------------------
+# YOUTUBE SEARCH
+# ---------------------------
 async def search_youtube(search_query):
     api_key = os.getenv("GOOGLE_API_KEY")
     url = f"https://www.googleapis.com/youtube/v3/search?key={api_key}&q={search_query}&videoEmbeddable=true&type=video&maxResults=5"

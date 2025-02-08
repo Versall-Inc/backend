@@ -22,10 +22,12 @@ const assignmentProgressSchema = new mongoose.Schema(
       ref: "Assignment",
       required: true,
     },
+    fileUrl: { type: String, trim: true },
     submitted: { type: Boolean, default: false },
     submissionDate: { type: Date },
-    grade: { type: Number, min: 0 },
+    grade: { type: Number, min: 0, default: null },
     feedback: { type: String },
+    attempts: { type: Number, default: 0, min: 0, max: 3 },
   },
   { _id: false }
 );

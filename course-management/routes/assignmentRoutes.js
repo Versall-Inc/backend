@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const assignmentSubmissionController = require("../controllers/assignmentSubmissionController");
+const assignmentController = require("../controllers/assignmentController");
 const {
   uploadWriting,
   uploadPresentation,
@@ -23,7 +24,14 @@ function selectMulter(req, res, next) {
   }
 }
 
+router.get("/get/:courseId", assignmentController.getAssignments);
+
+router.get(
+  "/get/:courseId/:assignmentId",
+  assignmentController.getAssignmentById
+);
+
 // POST assignment submission
-router.post("/", selectMulter, assignmentSubmissionController.submitAssignment);
+router.post("/submit/:courseId/:assignmentId", selectMulter, assignmentSubmissionController.submitAssignment);
 
 module.exports = router;

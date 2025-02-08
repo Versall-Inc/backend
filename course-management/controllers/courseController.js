@@ -5,7 +5,6 @@ const path = require("path");
 const mongoose = require("mongoose");
 const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
-const AssignmentSubmission = require("../models/AssignmentSubmission");
 const {
   generateCourseOutline,
   createCourseAsync,
@@ -21,23 +20,6 @@ const {
  */
 const deleteCourseCascade = async (courseId) => {
   try {
-    // 1. Delete Assignment Submissions and associated files
-    const assignmentSubmissions = await AssignmentSubmission.find({ courseId });
-    for (const submission of assignmentSubmissions) {
-      if (submission.fileUrl) {
-        try {
-          fs.unlinkSync(path.resolve(submission.fileUrl));
-        } catch (err) {
-          // Log the error and continue
-          console.error(
-            `Failed to delete file at ${submission.fileUrl}:`,
-            err.message
-          );
-        }
-      }
-    }
-    await AssignmentSubmission.deleteMany({ courseId });
-
     // 3. Delete Enrollments (which include embedded CourseProgress)
     await Enrollment.deleteMany({ course: courseId });
 
@@ -460,7 +442,11 @@ exports.getRecommendations = async (req, res) => {
     );
     const recommendations = await Course.aggregate([
       {
-        $match: { isPublic: true, _id: { $nin: enrolledCourseIds } },
+        $match: {
+          isPublic: true,
+          _id: { $nin: enrolledCourseIds },
+          generated: true,
+        },
       },
       {
         $addFields: {

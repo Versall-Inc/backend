@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union
+from fastapi import UploadFile, File
+
 
 # Assessment Models
 class Answer(BaseModel):
@@ -196,3 +198,12 @@ class CompleteUnitSchema(BaseModel):
     assignment: Optional[AssignmentSchema] = Field(
         None, description="An optional assignment for the unit."
     )
+
+class GradingResultSchema(BaseModel):
+    feedback: str = Field(..., description="The feedback for the assignment. Consists strengths and areas for improvement.")
+    grade: int = Field(..., description="The grade for the assignment.(0 to 100)")
+
+class WritingAssessmentRequest(BaseModel):
+    """Model for writing assignment grading request"""
+    file: UploadFile = File(...)
+    assignment_overview: str = Field(..., description="The assignment overview")
