@@ -29,7 +29,8 @@ services:
     build:
       context: ./api-gateway
     ports:
-      - "3000:3000"
+      - "443:3000"
+      - "80:3000"
     networks:
       - intelligence-network
     depends_on:
@@ -47,6 +48,8 @@ services:
     volumes:
       - ./api-gateway:/server
       - node_modules1:/server/node_modules
+      - /etc/letsencrypt/live/35.193.107.80.nip.io/fullchain.pem:/etc/ssl/certs/35.193.107.80.nip.io/fullchain.pem:ro
+      - /etc/letsencrypt/live/35.193.107.80.nip.io/privkey.pem:/etc/ssl/certs/35.193.107.80.nip.io/privkey.pem:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
